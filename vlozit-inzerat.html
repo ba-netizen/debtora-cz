@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vložit inzerát — DEBTORA CZ</title>
+<meta name="description" content="Vložte inzerát zdarma a prodejte své aktivum.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a6520" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span data-cms="global.disclaimer">Investice do distressed assets nesou riziko ztráty. DEBTORA CZ není investiční poradce.</span>
+</div>
+<nav>
+  <a href="index.html" class="logo-wrap">
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
+    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+  </a>
+  <div class="nav-links">
+    <div class="nav-dropdown">
+      <a href="#">Služby ▾</a>
+      <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
+        <a href="sluzby-dluhy.html"><span class="dd-icon">📄</span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon">📊</span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon">🏚️</span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+      </div></div>
+    </div>
+    <a href="trziste.html">Tržiště</a>
+    <a href="jak-to-funguje.html">Jak to funguje</a>
+    <a href="cenik.html">Ceník</a>
+    <a href="kontakt.html">Kontakt</a>
+    <a href="prihlaseni.html" class="nav-auth-login">Přihlásit se</a>
+    <a href="ucet.html" class="nav-auth-account" style="display:none"><span class="nav-auth-name">Účet</span></a>
+    <a href="registrace.html" class="btn-nav">Registrace</a>
+  </div>
+  <button class="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</nav>
+<div class="page-hero"><div class="page-hero-bg"></div><div class="container">
+  <div class="page-hero-tag" data-cms="submitListing.hero_tag">Vložit inzerát</div>
+  <h1 data-cms="submitListing.hero_headline">Prodejte své <em>aktivum</em></h1>
+  <p class="page-hero-desc" data-cms="submitListing.hero_desc">Vložení inzerátu je zdarma. Oslovte stovky aktivních investorů na naší platformě.</p>
+</div></div>
+<section>
+  <div class="container">
+    <div class="form-container reveal">
+      <form id="listingForm" class="auth-form">
+        <div class="form-group"><label>Název aktiva *</label><input type="text" name="title" placeholder="Např. Balík spotřebitelských pohledávek" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Typ aktiva *</label>
+            <select name="type" required><option value="debt">Pohledávka / Dluh</option><option value="property">Nemovitost</option><option value="otc">OTC cenný papír</option></select>
+          </div>
+          <div class="form-group"><label>Kategorie</label><input type="text" name="category" placeholder="Např. consumer, commercial, residential"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Požadovaná cena (Kč) *</label><input type="number" name="price" placeholder="1250000" required></div>
+          <div class="form-group"><label>Nominální / odhadní hodnota (Kč)</label><input type="number" name="original_value" placeholder="3825000"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Lokalita</label><input type="text" name="location" placeholder="Praha, Brno, Česká republika..."></div>
+          <div class="form-group"><label>Kontaktní e-mail *</label><input type="email" name="contact_email" required placeholder="vas@email.cz"></div>
+        </div>
+        <div class="form-group"><label>Popis aktiva *</label><textarea name="description" rows="5" placeholder="Detailní popis aktiva — typ, objem, stáří, zajištění..." required></textarea></div>
+        <div class="form-group">
+          <label>Fotografie a dokumenty</label>
+          <div class="file-upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none">
+            <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+              <span class="upload-icon">📎</span>
+              <span>Klikněte pro nahrání fotek a dokumentů</span>
+              <small>JPG, PNG, WebP, PDF — max 10 MB na soubor, max 8 souborů</small>
+            </div>
+            <div class="upload-preview" id="uploadPreview"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Vložit inzerát →</button>
+      </form>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
+    </div>
+    <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
+    <div class="footer-col"><h5>Služby</h5><a href="sluzby-dluhy.html">Obchodování s dluhy</a><a href="sluzby-otc.html">OTC cenné papíry</a><a href="sluzby-nemovitosti.html">Prodej nemovitostí</a></div>
+    <div class="footer-col"><h5>Společnost</h5><a href="o-nas.html">O nás</a><a href="kontakt.html">Kontakt</a><a href="podminky.html">Obchodní podmínky</a><a href="ochrana-soukromi.html">Ochrana soukromí</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span data-cms="global.footer_copy">&copy; 2024 DEBTORA CZ s.r.o. Všechna práva vyhrazena.</span>
+    <div class="footer-legal"><a href="ochrana-soukromi.html">Ochrana soukromí</a><a href="podminky.html">Obchodní podmínky</a></div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cms.js"></script>
+<script src="js/main.js"></script>
+<script>
+// ── File Upload Handler ──
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('uploadPreview');
+let selectedFiles = [];
+
+fileInput.addEventListener('change', function() {
+  const newFiles = Array.from(this.files);
+  if (selectedFiles.length + newFiles.length > 8) {
+    showToast('Maximum 8 souborů', 'error'); return;
+  }
+  for (const f of newFiles) {
+    if (f.size > 10 * 1024 * 1024) { showToast(f.name + ' je příliš velký (max 10 MB)', 'error'); continue; }
+    selectedFiles.push(f);
+  }
+  renderPreview();
+  this.value = '';
+});
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files);
+  if (selectedFiles.length + files.length > 8) { showToast('Maximum 8 souborů', 'error'); return; }
+  for (const f of files) {
+    if (f.size > 10 * 1024 * 1024) { showToast(f.name + ' příliš velký', 'error'); continue; }
+    selectedFiles.push(f);
+  }
+  renderPreview();
+});
+
+function renderPreview() {
+  preview.innerHTML = selectedFiles.map((f, i) => {
+    const isImage = f.type.startsWith('image/');
+    const thumb = isImage ? URL.createObjectURL(f) : null;
+    return `<div class="upload-item">
+      ${thumb ? `<img src="${thumb}" alt="${f.name}">` : `<div class="upload-item-icon">📄</div>`}
+      <span class="upload-item-name">${f.name}</span>
+      <button type="button" class="upload-item-remove" onclick="removeFile(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFile(i) { selectedFiles.splice(i, 1); renderPreview(); }
+
+// ── Form Submit with File Upload ──
+document.getElementById('listingForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('button[type="submit"]');
+  setLoading(btn, true);
+  try {
+    const fd = new FormData(this);
+    const data = { title: fd.get('title'), type: fd.get('type'), category: fd.get('category'), price: Number(fd.get('price')), original_value: Number(fd.get('original_value')) || null, location: fd.get('location'), contact_email: fd.get('contact_email'), description: fd.get('description') };
+    if (data.original_value && data.price) data.discount_pct = Math.round((1 - data.price / data.original_value) * 1000) / 10;
+
+    // Create listing
+    const listing = await API.createListing(data);
+    const listingId = listing?.id || listing?.[0]?.id;
+
+    // Upload files
+    if (listingId && selectedFiles.length > 0) {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const path = `${listingId}/${Date.now()}-${i}.${ext}`;
+
+        const { data: uploadData, error: uploadError } = await sbClient.storage
+          .from('listing-files')
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) { console.error('Upload error:', uploadError); continue; }
+
+        const { data: urlData } = sbClient.storage.from('listing-files').getPublicUrl(path);
+
+        await sbClient.from('listing_files').insert({
+          listing_id: listingId,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_type: file.type.startsWith('image/') ? 'image' : 'document',
+          file_size: file.size,
+          sort_order: i
+        });
+      }
+    }
+
+    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Inzerát vložen!</h3><p>Váš inzerát včetně souborů bude po schválení zveřejněn na tržišti (do 24 hodin).</p><a href="trziste.html" class="btn-primary" style="margin-top:1.5rem;">Prohlédnout tržiště →</a></div>';
+    showToast('Inzerát vložen!', 'success');
+  } catch (err) { showToast(err.message, 'error'); setLoading(btn, false); }
+});
+</script>
+</body>
+</html>
