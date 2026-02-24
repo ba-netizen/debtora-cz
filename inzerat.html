@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detail nabídky — DEBTORA CZ</title>
+<meta name="description" content="Detail inzerátu na platformě DEBTORA CZ.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a6520" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span data-cms="global.disclaimer">Investice do distressed assets nesou riziko ztráty. DEBTORA CZ není investiční poradce.</span>
+</div>
+<nav>
+  <a href="index.html" class="logo-wrap">
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
+    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+  </a>
+  <div class="nav-links">
+    <div class="nav-dropdown">
+      <a href="#">Služby ▾</a>
+      <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
+        <a href="sluzby-dluhy.html"><span class="dd-icon">📄</span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon">📊</span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon">🏚️</span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+      </div></div>
+    </div>
+    <a href="trziste.html">Tržiště</a>
+    <a href="jak-to-funguje.html">Jak to funguje</a>
+    <a href="cenik.html">Ceník</a>
+    <a href="kontakt.html">Kontakt</a>
+    <a href="prihlaseni.html" class="nav-auth-login">Přihlásit se</a>
+    <a href="ucet.html" class="nav-auth-account" style="display:none"><span class="nav-auth-name">Účet</span></a>
+    <a href="registrace.html" class="btn-nav">Registrace</a>
+  </div>
+  <button class="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-hero"><div class="page-hero-bg"></div><div class="container">
+  <div class="page-hero-tag" id="detailTag">Načítání...</div>
+  <h1 id="detailTitle">—</h1>
+  <p class="page-hero-desc" id="detailLocation">—</p>
+</div></div>
+
+<section>
+  <div class="container">
+    <div id="detailLoading" style="text-align:center;padding:4rem 0;color:var(--text-muted)">
+      Načítání detailů inzerátu...
+    </div>
+
+    <div id="detailContent" style="display:none">
+      <div class="detail-grid">
+        <!-- LEFT: Main info -->
+        <div class="detail-main">
+          <div class="detail-card">
+            <h3>Popis aktiva</h3>
+            <p id="detailDesc">—</p>
+          </div>
+
+          <!-- Image Gallery -->
+          <div class="detail-card" id="galleryCard" style="display:none">
+            <h3>📷 Fotografie</h3>
+            <div class="gallery" id="detailGallery"></div>
+          </div>
+
+          <!-- Documents -->
+          <div class="detail-card" id="docsListCard" style="display:none">
+            <h3>📎 Dokumenty</h3>
+            <div class="docs-list" id="detailDocsList"></div>
+          </div>
+
+          <div class="detail-card">
+            <h3>Parametry</h3>
+            <div class="detail-params">
+              <div class="detail-param"><span class="detail-param-label">Typ</span><span id="detailType" class="badge">—</span></div>
+              <div class="detail-param"><span class="detail-param-label">Kategorie</span><span id="detailCategory">—</span></div>
+              <div class="detail-param"><span class="detail-param-label">Stav</span><span id="detailStatus" class="badge">—</span></div>
+              <div class="detail-param"><span class="detail-param-label">Zveřejněno</span><span id="detailDate">—</span></div>
+              <div class="detail-param"><span class="detail-param-label">Zhlédnutí</span><span id="detailViews">—</span></div>
+            </div>
+          </div>
+
+          <!-- LOCKED: Full details behind auth -->
+          <div id="lockedSection" class="detail-locked">
+            <div class="locked-overlay">
+              <div class="locked-icon">🔒</div>
+              <h3>Detailní dokumentace</h3>
+              <p>Pro přístup k plným detailům, dokumentaci a kontaktním údajům prodávajícího se přihlaste nebo zaregistrujte.</p>
+              <div class="locked-actions">
+                <a href="prihlaseni.html" class="btn-primary" id="lockLoginBtn">Přihlásit se →</a>
+                <a href="registrace.html" class="btn-secondary">Registrace zdarma</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- UNLOCKED: Full details for logged-in users -->
+          <div id="unlockedSection" style="display:none">
+            <div class="detail-card">
+              <h3>📄 Dokumentace a due diligence</h3>
+              <p id="detailDocs" style="color:var(--text-secondary)">Detailní dokumentace k tomuto aktivu je dostupná na vyžádání. Kontaktujte prodávajícího přes formulář níže.</p>
+            </div>
+
+            <div class="detail-card">
+              <h3>✉️ Kontaktovat prodávajícího</h3>
+              <form id="inquiryForm" class="inquiry-form">
+                <div class="form-group"><label>Vaše zpráva *</label><textarea name="message" rows="4" placeholder="Mám zájem o toto aktivum. Rád bych se dozvěděl více o..." required></textarea></div>
+                <button type="submit" class="btn-primary">Odeslat dotaz →</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Sidebar -->
+        <div class="detail-sidebar">
+          <div class="detail-price-card">
+            <div class="detail-price-label">Požadovaná cena</div>
+            <div class="detail-price" id="detailPrice">—</div>
+            <div class="detail-original" id="detailOriginal"></div>
+            <div class="detail-discount" id="detailDiscount"></div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:1.2rem 0">
+            <div id="sidebarCta">
+              <a href="prihlaseni.html" class="btn-primary" style="width:100%;text-align:center;display:block;margin-bottom:.8rem" id="sideLoginBtn">Přihlásit se pro kontakt</a>
+              <a href="registrace.html" class="btn-secondary" style="width:100%;text-align:center;display:block">Registrace zdarma</a>
+            </div>
+            <div id="sidebarCtaAuth" style="display:none">
+              <a href="#inquiryForm" class="btn-primary" style="width:100%;text-align:center;display:block;margin-bottom:.8rem">Kontaktovat prodávajícího</a>
+              <button class="btn-secondary" style="width:100%;cursor:pointer" onclick="saveListing()">⭐ Uložit do oblíbených</button>
+            </div>
+          </div>
+
+          <div class="detail-sidebar-card">
+            <h4>📍 Lokalita</h4>
+            <p id="sideLocation">—</p>
+          </div>
+
+          <div class="detail-sidebar-card" id="contactCard" style="display:none">
+            <h4>📞 Kontakt na prodávajícího</h4>
+            <p id="sideContact">—</p>
+          </div>
+
+          <a href="trziste.html" class="btn-secondary" style="width:100%;text-align:center;display:block;margin-top:1rem">← Zpět na tržiště</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="detailError" style="display:none;text-align:center;padding:4rem 0">
+      <h2 style="font-family:var(--font-display);font-weight:400;margin-bottom:1rem">Inzerát nenalezen</h2>
+      <p style="color:var(--text-secondary);margin-bottom:2rem">Tento inzerát neexistuje nebo byl odstraněn.</p>
+      <a href="trziste.html" class="btn-primary">← Prohlédnout tržiště</a>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
+    </div>
+    <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
+    <div class="footer-col"><h5>Služby</h5><a href="sluzby-dluhy.html">Obchodování s dluhy</a><a href="sluzby-otc.html">OTC cenné papíry</a><a href="sluzby-nemovitosti.html">Prodej nemovitostí</a></div>
+    <div class="footer-col"><h5>Společnost</h5><a href="o-nas.html">O nás</a><a href="kontakt.html">Kontakt</a><a href="podminky.html">Obchodní podmínky</a><a href="ochrana-soukromi.html">Ochrana soukromí</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span data-cms="global.footer_copy">&copy; 2024 DEBTORA CZ s.r.o. Všechna práva vyhrazena.</span>
+    <div class="footer-legal"><a href="ochrana-soukromi.html">Ochrana soukromí</a><a href="podminky.html">Obchodní podmínky</a></div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cms.js"></script>
+<script src="js/main.js"></script>
+<script>
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) { showError(); return; }
+
+  try {
+    const { data, error } = await supabase.rpc('get_listing_detail', { listing_uuid: id });
+    if (error || !data?.success) { showError(); return; }
+
+    const l = data.listing;
+    document.getElementById('detailLoading').style.display = 'none';
+    document.getElementById('detailContent').style.display = 'block';
+
+    // Hero
+    const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC cenný papír' };
+    document.getElementById('detailTag').textContent = typeNames[l.type] || l.type;
+    document.getElementById('detailTitle').textContent = l.title;
+    document.getElementById('detailLocation').textContent = l.location ? '📍 ' + l.location : '';
+    document.title = l.title + ' — DEBTORA CZ';
+
+    // Main info
+    document.getElementById('detailDesc').textContent = l.description || 'Bez popisu.';
+    document.getElementById('detailType').textContent = typeNames[l.type] || l.type;
+    document.getElementById('detailType').className = 'badge badge-' + l.type;
+    document.getElementById('detailCategory').textContent = l.category || '—';
+    document.getElementById('detailStatus').textContent = l.status;
+    document.getElementById('detailStatus').className = 'badge badge-' + l.status;
+    document.getElementById('detailDate').textContent = new Date(l.created_at).toLocaleDateString('cs-CZ');
+    document.getElementById('detailViews').textContent = (l.views || 0) + '×';
+
+    // Sidebar price
+    document.getElementById('detailPrice').textContent = l.price ? Number(l.price).toLocaleString('cs-CZ') + ' Kč' : 'Na vyžádání';
+    if (l.original_value) {
+      document.getElementById('detailOriginal').textContent = 'Nominální hodnota: ' + Number(l.original_value).toLocaleString('cs-CZ') + ' Kč';
+    }
+    if (l.discount_pct) {
+      document.getElementById('detailDiscount').textContent = 'Sleva: -' + l.discount_pct + ' %';
+    }
+    document.getElementById('sideLocation').textContent = l.location || '—';
+
+    // Load files (images + documents)
+    try {
+      const { data: files } = await supabase
+        .from('listing_files')
+        .select('*')
+        .eq('listing_id', id)
+        .order('sort_order');
+
+      if (files && files.length > 0) {
+        const images = files.filter(f => f.file_type === 'image');
+        const docs = files.filter(f => f.file_type !== 'image');
+
+        if (images.length > 0) {
+          document.getElementById('galleryCard').style.display = 'block';
+          document.getElementById('detailGallery').innerHTML = images.map(img =>
+            `<a href="${img.file_url}" target="_blank" class="gallery-item">
+              <img src="${img.file_url}" alt="${img.file_name}" loading="lazy">
+            </a>`
+          ).join('');
+        }
+
+        if (docs.length > 0) {
+          document.getElementById('docsListCard').style.display = 'block';
+          document.getElementById('detailDocsList').innerHTML = docs.map(doc => {
+            const sizeMB = (doc.file_size / 1024 / 1024).toFixed(1);
+            return `<a href="${doc.file_url}" target="_blank" class="doc-item">
+              <span class="doc-icon">📄</span>
+              <span class="doc-name">${doc.file_name}</span>
+              <span class="doc-size">${sizeMB} MB</span>
+            </a>`;
+          }).join('');
+        }
+      }
+    } catch (e) { console.error('Files load error:', e); }
+
+    // Auth-dependent sections
+    if (Auth.isLoggedIn()) {
+      document.getElementById('lockedSection').style.display = 'none';
+      document.getElementById('unlockedSection').style.display = 'block';
+      document.getElementById('sidebarCta').style.display = 'none';
+      document.getElementById('sidebarCtaAuth').style.display = 'block';
+      if (l.contact_email) {
+        document.getElementById('contactCard').style.display = 'block';
+        document.getElementById('sideContact').innerHTML = '<a href="mailto:' + l.contact_email + '">' + l.contact_email + '</a>';
+      }
+    } else {
+      // Save redirect URL for after login
+      const loginUrl = 'prihlaseni.html?redirect=' + encodeURIComponent(window.location.href);
+      document.getElementById('lockLoginBtn').href = loginUrl;
+      document.getElementById('sideLoginBtn').href = loginUrl;
+    }
+
+  } catch (e) {
+    console.error(e);
+    showError();
+  }
+
+  function showError() {
+    document.getElementById('detailLoading').style.display = 'none';
+    document.getElementById('detailError').style.display = 'block';
+  }
+})();
+
+// Inquiry form
+document.getElementById('inquiryForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const user = Auth.getUser();
+  if (!user) { showToast('Nejdříve se přihlaste', 'error'); return; }
+  const btn = this.querySelector('button');
+  btn.textContent = 'Odesílání...'; btn.disabled = true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    await API.sendMessage({
+      name: user.name || user.email,
+      email: user.email,
+      type: 'inquiry',
+      message: '[Dotaz k inzerátu #' + params.get('id')?.slice(0,8) + '] ' + this.querySelector('textarea').value
+    });
+    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Dotaz odeslán!</h3><p>Prodávající obdrží váš dotaz a odpověď přijde na ' + user.email + '</p></div>';
+    showToast('Dotaz odeslán!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.textContent = 'Odeslat dotaz →'; btn.disabled = false;
+  }
+});
+
+function saveListing() {
+  showToast('Nabídka uložena do oblíbených ⭐', 'success');
+}
+</script>
+</body>
+</html>

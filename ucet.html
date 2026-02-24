@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Můj účet — DEBTORA CZ</title>
+<meta name="description" content="Správa účtu, inzerátů a oblíbených nabídek.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a6520" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span data-cms="global.disclaimer">Investice do distressed assets nesou riziko ztráty. DEBTORA CZ není investiční poradce.</span>
+</div>
+<nav>
+  <a href="index.html" class="logo-wrap">
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
+    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+  </a>
+  <div class="nav-links">
+    <div class="nav-dropdown">
+      <a href="#">Služby ▾</a>
+      <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
+        <a href="sluzby-dluhy.html"><span class="dd-icon">📄</span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon">📊</span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon">🏚️</span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+      </div></div>
+    </div>
+    <a href="trziste.html">Tržiště</a>
+    <a href="jak-to-funguje.html">Jak to funguje</a>
+    <a href="cenik.html">Ceník</a>
+    <a href="kontakt.html">Kontakt</a>
+    <a href="prihlaseni.html" class="nav-auth-login">Přihlásit se</a>
+    <a href="ucet.html" class="nav-auth-account" style="display:none"><span class="nav-auth-name">Účet</span></a>
+    <a href="registrace.html" class="btn-nav">Registrace</a>
+  </div>
+  <button class="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-hero"><div class="page-hero-bg"></div><div class="container">
+  <div class="page-hero-tag">Můj účet</div>
+  <h1>Vítejte, <em id="userName">—</em></h1>
+  <p class="page-hero-desc" id="userStatus">Načítání...</p>
+</div></div>
+
+<section>
+  <div class="container">
+    <div class="account-tabs">
+      <button class="acc-tab active" onclick="showAccTab('profile',this)">👤 Profil</button>
+      <button class="acc-tab" onclick="showAccTab('my-listings',this)">📋 Moje inzeráty</button>
+      <button class="acc-tab" onclick="showAccTab('favorites',this)">⭐ Uložené</button>
+      <button class="acc-tab acc-tab-logout" onclick="Auth.logout()">Odhlásit se ↗</button>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="acc-profile" class="acc-panel">
+      <div class="profile-grid">
+        <div class="profile-card">
+          <h3>Osobní údaje</h3>
+          <div class="profile-row"><span class="profile-label">Jméno</span><span id="pName">—</span></div>
+          <div class="profile-row"><span class="profile-label">E-mail</span><span id="pEmail">—</span></div>
+          <div class="profile-row"><span class="profile-label">Telefon</span><span id="pPhone">—</span></div>
+          <div class="profile-row"><span class="profile-label">Společnost</span><span id="pCompany">—</span></div>
+          <div class="profile-row"><span class="profile-label">IČO</span><span id="pIco">—</span></div>
+        </div>
+        <div class="profile-card">
+          <h3>Stav účtu</h3>
+          <div class="profile-row"><span class="profile-label">Typ účtu</span><span id="pType">—</span></div>
+          <div class="profile-row"><span class="profile-label">KYC ověření</span><span id="pKyc">—</span></div>
+          <div class="profile-row"><span class="profile-label">Registrace</span><span id="pDate">—</span></div>
+          <div id="kycNotice" class="kyc-notice" style="display:none">
+            <p>⏳ Vaše identita ještě nebyla ověřena. Po ověření (KYC) získáte přístup k plným detailům nabídek a kontaktním údajům prodávajících.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY LISTINGS -->
+    <div id="acc-my-listings" class="acc-panel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+        <h3 style="font-family:var(--font-display);font-weight:400;font-size:1.2rem">Moje inzeráty</h3>
+        <a href="vlozit-inzerat.html" class="btn-primary" style="font-size:.85rem;padding:.6rem 1.2rem">+ Nový inzerát</a>
+      </div>
+      <div id="myListingsGrid" class="listings-grid">
+        <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem 0">Zatím nemáte žádné inzeráty. <a href="vlozit-inzerat.html">Vložit první inzerát →</a></p>
+      </div>
+    </div>
+
+    <!-- FAVORITES -->
+    <div id="acc-favorites" class="acc-panel" style="display:none">
+      <h3 style="font-family:var(--font-display);font-weight:400;font-size:1.2rem;margin-bottom:1.5rem">Uložené nabídky</h3>
+      <div id="favoritesGrid" class="listings-grid">
+        <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem 0">Zatím nemáte žádné uložené nabídky. Prohlédněte si <a href="trziste.html">tržiště →</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
+    </div>
+    <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
+    <div class="footer-col"><h5>Služby</h5><a href="sluzby-dluhy.html">Obchodování s dluhy</a><a href="sluzby-otc.html">OTC cenné papíry</a><a href="sluzby-nemovitosti.html">Prodej nemovitostí</a></div>
+    <div class="footer-col"><h5>Společnost</h5><a href="o-nas.html">O nás</a><a href="kontakt.html">Kontakt</a><a href="podminky.html">Obchodní podmínky</a><a href="ochrana-soukromi.html">Ochrana soukromí</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span data-cms="global.footer_copy">&copy; 2024 DEBTORA CZ s.r.o. Všechna práva vyhrazena.</span>
+    <div class="footer-legal"><a href="ochrana-soukromi.html">Ochrana soukromí</a><a href="podminky.html">Obchodní podmínky</a></div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cms.js"></script>
+<script src="js/main.js"></script>
+<script>
+// Require login
+if (!Auth.requireLogin()) { /* redirects */ }
+
+// Populate profile
+const user = Auth.getUser();
+if (user) {
+  document.getElementById('userName').textContent = user.name || user.email;
+  const kycMap = { verified: '✅ Ověřeno', pending: '⏳ Čeká na ověření', unverified: '❌ Neověřeno', rejected: '❌ Zamítnuto' };
+  const typeMap = { buyer: 'Kupující', seller: 'Prodávající', both: 'Kupující i prodávající', broker: 'Broker' };
+  document.getElementById('userStatus').textContent = typeMap[user.account_type] || user.account_type;
+  document.getElementById('pName').textContent = user.name || '—';
+  document.getElementById('pEmail').textContent = user.email;
+  document.getElementById('pPhone').textContent = user.phone || '—';
+  document.getElementById('pCompany').textContent = user.company || '—';
+  document.getElementById('pIco').textContent = user.ico || '—';
+  document.getElementById('pType').textContent = typeMap[user.account_type] || user.account_type;
+  document.getElementById('pKyc').innerHTML = kycMap[user.kyc_status] || user.kyc_status;
+  document.getElementById('pDate').textContent = new Date(user.created_at).toLocaleDateString('cs-CZ');
+  if (user.kyc_status !== 'verified') document.getElementById('kycNotice').style.display = 'block';
+}
+
+function showAccTab(name, btn) {
+  document.querySelectorAll('.acc-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.acc-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('acc-' + name).style.display = 'block';
+  if (btn) btn.classList.add('active');
+}
+</script>
+</body>
+</html>
