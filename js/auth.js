@@ -30,7 +30,7 @@ const Auth = {
   // Login — calls API and stores session
   async login(email, password) {
     const pwHash = await hashPassword(password);
-    const { data, error } = await supabase.rpc('user_login', {
+    const { data, error } = await sbClient.rpc('user_login', {
       user_email: email,
       pw_hash: pwHash
     });

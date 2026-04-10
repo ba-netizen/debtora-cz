@@ -62,16 +62,16 @@
       <div class="contact-info">
         <div class="contact-block">
           <h3>Kontaktní údaje</h3>
-          <p><strong>E-mail:</strong> <a href="mailto:info@debtora.cz">info@debtora.cz</a></p>
-          <p><strong>Telefon:</strong> <a href="tel:+420123456789">+420 XXX XXX XXX</a></p>
+          <p><strong>E-mail:</strong> <span id="contactEmail">info@debtora.cz</span></p>
+          <p><strong>Telefon:</strong> <span id="contactPhone">+420 XXX XXX XXX</span></p>
         </div>
         <div class="contact-block">
           <h3>Sídlo společnosti</h3>
-          <p>DEBTORA CZ s.r.o.<br>Václavské náměstí 1<br>110 00 Praha 1</p>
+          <p id="contactAddress">DEBTORA CZ s.r.o.<br>Václavské náměstí 1<br>110 00 Praha 1</p>
         </div>
         <div class="contact-block">
           <h3>Fakturační údaje</h3>
-          <p>IČO: XXX XX XXX<br>DIČ: CZ XXXXXXXX<br>Městský soud v Praze, sp. zn. C XXXXX</p>
+          <p id="contactBilling">IČO: XXX XX XXX<br>DIČ: CZ XXXXXXXX<br>Městský soud v Praze, sp. zn. C XXXXX</p>
         </div>
       </div>
     </div>
@@ -111,6 +111,32 @@ document.getElementById('contactForm').addEventListener('submit', async function
     showToast('Zpráva odeslána!', 'success');
   } catch (err) { showToast(err.message, 'error'); setLoading(btn, false); }
 });
+</script>
+<script>
+// Load contact info from settings
+(async function() {
+  try {
+    const contact = await API.getSettings('contact');
+    const company = await API.getSettings('company');
+
+    if (contact.email) {
+      document.getElementById('contactEmail').innerHTML = '<a href="mailto:' + contact.email + '">' + contact.email + '</a>';
+    }
+    if (contact.phone) {
+      document.getElementById('contactPhone').innerHTML = '<a href="tel:' + contact.phone.replace(/\s/g,'') + '">' + contact.phone + '</a>';
+    }
+    if (company.name) {
+      document.getElementById('contactAddress').innerHTML =
+        company.name + '<br>' + (company.address || '');
+    }
+    if (company.ico) {
+      document.getElementById('contactBilling').innerHTML =
+        'IČO: ' + company.ico +
+        (company.dic ? '<br>DIČ: ' + company.dic : '') +
+        (company.court ? '<br>' + company.court : '');
+    }
+  } catch (e) { console.warn('Settings load:', e); }
+})();
 </script>
 </body>
 </html>

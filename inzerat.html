@@ -179,7 +179,7 @@
   if (!id) { showError(); return; }
 
   try {
-    const { data, error } = await supabase.rpc('get_listing_detail', { listing_uuid: id });
+    const { data, error } = await sbClient.rpc('get_listing_detail', { listing_uuid: id });
     if (error || !data?.success) { showError(); return; }
 
     const l = data.listing;
@@ -215,7 +215,7 @@
 
     // Load files (images + documents)
     try {
-      const { data: files } = await supabase
+      const { data: files } = await sbClient
         .from('listing_files')
         .select('*')
         .eq('listing_id', id)

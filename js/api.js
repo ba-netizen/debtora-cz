@@ -12,13 +12,16 @@
 const SUPABASE_URL = window.DEBTORA_CONFIG?.SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
 const SUPABASE_ANON_KEY = window.DEBTORA_CONFIG?.SUPABASE_ANON_KEY || 'YOUR_ANON_KEY';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Make available globally for other scripts
+window.sbClient = sbClient;
 
 // ── Public API (no auth required) ──
 const API = {
   // ── LISTINGS ──
   async getListings(filters = {}) {
-    let query = supabase
+    let query = sbClient
       .from('listings')
       .select('*')
       .eq('status', 'active')
@@ -38,9 +41,9 @@ const API = {
 
   async getListing(id) {
     // Increment view count
-    await supabase.rpc('increment_views', { listing_id: id }).catch(() => {});
+    await sbClient.rpc('increment_views', { listing_id: id }).catch(() => {});
     
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('listings')
       .select('*')
       .eq('id', id)
@@ -51,7 +54,7 @@ const API = {
   },
 
   async createListing(listing) {
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('listings')
       .insert([{ ...listing, status: 'pending' }])
       .select()
@@ -66,7 +69,7 @@ const API = {
     const pwHash = await hashPassword(userData.password);
     delete userData.password;
 
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('users')
       .insert([{ ...userData, password_hash: pwHash }])
       .select('id, email, name, company, account_type, created_at')
@@ -80,7 +83,7 @@ const API = {
 
   // ── MESSAGES (contact form) ──
   async sendMessage(msgData) {
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('messages')
       .insert([msgData])
       .select()
@@ -92,7 +95,7 @@ const API = {
   // ── CONTENT (CMS) ──
   async getContent(blockKey) {
     if (blockKey) {
-      const { data, error } = await supabase
+      const { data, error } = await sbClient
         .from('content')
         .select('fields')
         .eq('block_key', blockKey)
@@ -101,7 +104,7 @@ const API = {
       return data?.fields || {};
     }
     // Get all content blocks
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('content')
       .select('block_key, fields');
     if (error) return {};
@@ -113,14 +116,14 @@ const API = {
   // ── SETTINGS ──
   async getSettings(key) {
     if (key) {
-      const { data } = await supabase
+      const { data } = await sbClient
         .from('settings')
         .select('value')
         .eq('key', key)
         .single();
       return data?.value || {};
     }
-    const { data } = await supabase.from('settings').select('key, value');
+    const { data } = await sbClient.from('settings').select('key, value');
     const result = {};
     (data || []).forEach(row => { result[row.key] = row.value; });
     return result;
@@ -144,7 +147,7 @@ const AdminAPI = {
   async login(password) {
     // Verify against admin_users table using anon client + RPC
     const pwHash = await hashPassword(password);
-    const { data, error } = await supabase.rpc('admin_login', {
+    const { data, error } = await sbClient.rpc('admin_login', {
       pw_hash: pwHash
     });
     if (error || !data) throw new Error('Nesprávné heslo');

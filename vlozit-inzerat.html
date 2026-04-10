@@ -168,15 +168,15 @@ document.getElementById('listingForm').addEventListener('submit', async function
         const ext = file.name.split('.').pop().toLowerCase();
         const path = `${listingId}/${Date.now()}-${i}.${ext}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await sbClient.storage
           .from('listing-files')
           .upload(path, file, { cacheControl: '3600', upsert: false });
 
         if (uploadError) { console.error('Upload error:', uploadError); continue; }
 
-        const { data: urlData } = supabase.storage.from('listing-files').getPublicUrl(path);
+        const { data: urlData } = sbClient.storage.from('listing-files').getPublicUrl(path);
 
-        await supabase.from('listing_files').insert({
+        await sbClient.from('listing_files').insert({
           listing_id: listingId,
           file_name: file.name,
           file_url: urlData.publicUrl,
