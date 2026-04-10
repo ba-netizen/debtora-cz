@@ -212,12 +212,7 @@ const SURL = window.DEBTORA_CONFIG?.SUPABASE_URL || '';
 const SKEY = window.DEBTORA_CONFIG?.SUPABASE_ANON_KEY || '';
 const sb = window.supabase.createClient(SURL, SKEY);
 
-let adminServiceKey = null; // set after login for admin operations
-
-function adminClient() {
-  if (adminServiceKey) return window.supabase.createClient(SURL, adminServiceKey);
-  return sb;
-}
+let adminPwHash = null; // stored after login for RPC auth
 
 // ── SHA-256 ──
 async function sha256(str) {
@@ -246,7 +241,9 @@ async function doLogin() {
       document.getElementById('authError').style.display = 'block';
       return;
     }
+    adminPwHash = hash;
     sessionStorage.setItem('admin_auth', 'true');
+    sessionStorage.setItem('admin_ph', hash);
     document.getElementById('authGate').style.display = 'none';
     document.getElementById('adminApp').style.display = 'block';
     loadDashboard();
@@ -257,16 +254,22 @@ async function doLogin() {
 
 function doLogout() {
   sessionStorage.removeItem('admin_auth');
+  sessionStorage.removeItem('admin_ph');
+  adminPwHash = null;
   location.reload();
 }
 
 document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 // Auto-login if session exists
-if (sessionStorage.getItem('admin_auth')) {
+if (sessionStorage.getItem('admin_auth') && sessionStorage.getItem('admin_ph')) {
+  adminPwHash = sessionStorage.getItem('admin_ph');
   document.getElementById('authGate').style.display = 'none';
   document.getElementById('adminApp').style.display = 'block';
   setTimeout(loadDashboard, 100);
+} else {
+  // Clear stale sessions without pw hash
+  sessionStorage.removeItem('admin_auth');
 }
 
 // ── NAVIGATION ──
@@ -294,7 +297,8 @@ async function loadDashboard() {
       document.getElementById('statUsers').textContent = stats.total_users;
       document.getElementById('statMessages').textContent = stats.unread_messages;
     }
-    const { data: recent } = await sb.from('listings').select('*').order('created_at', { ascending: false }).limit(5);
+    const recentResult = await sb.rpc('admin_get_listings', { pw_hash: adminPwHash });
+    const recent = (recentResult.data?.data || []).slice(0, 5);
     const tbody = document.querySelector('#dashRecentTable tbody');
     tbody.innerHTML = (recent || []).map(l => `<tr>
       <td>${esc(l.title)}</td>
@@ -308,7 +312,8 @@ async function loadDashboard() {
 
 // ── LISTINGS ──
 async function loadListings() {
-  const { data } = await sb.from('listings').select('*').order('created_at', { ascending: false });
+  const result = await sb.rpc('admin_get_listings', { pw_hash: adminPwHash });
+  const data = result.data?.data || [];
   const tbody = document.querySelector('#listingsTable tbody');
   tbody.innerHTML = (data || []).map(l => `<tr>
     <td>${esc(l.title)}</td>
@@ -325,21 +330,24 @@ async function loadListings() {
 }
 
 async function updateListing(id, status) {
-  await sb.from('listings').update({ status }).eq('id', id);
+  const { data, error } = await sb.rpc('admin_update_listing', { pw_hash: adminPwHash, p_listing_id: id, p_status: status });
+  if (error || !data?.success) { toast('Chyba při aktualizaci', 'error'); return; }
   toast('Inzerát aktualizován');
   loadListings();
 }
 
 async function deleteListing(id) {
   if (!confirm('Opravdu smazat tento inzerát?')) return;
-  await sb.from('listings').delete().eq('id', id);
+  const { data, error } = await sb.rpc('admin_delete_listing', { pw_hash: adminPwHash, p_listing_id: id });
+  if (error || !data?.success) { toast('Chyba při mazání', 'error'); return; }
   toast('Inzerát smazán');
   loadListings();
 }
 
 // ── USERS ──
 async function loadUsers() {
-  const { data } = await sb.from('users').select('*').order('created_at', { ascending: false });
+  const result = await sb.rpc('admin_get_users', { pw_hash: adminPwHash });
+  const data = result.data?.data || [];
   const tbody = document.querySelector('#usersTable tbody');
   tbody.innerHTML = (data || []).map(u => `<tr>
     <td>${esc(u.name || '—')}</td>
@@ -355,21 +363,24 @@ async function loadUsers() {
 }
 
 async function verifyUser(id) {
-  await sb.from('users').update({ kyc_status: 'verified' }).eq('id', id);
+  const { data, error } = await sb.rpc('admin_update_user', { pw_hash: adminPwHash, p_user_id: id, p_updates: { kyc_status: 'verified' } });
+  if (error || !data?.success) { toast('Chyba při ověřování', 'error'); return; }
   toast('Uživatel ověřen');
   loadUsers();
 }
 
 async function deleteUser(id) {
   if (!confirm('Opravdu smazat uživatele?')) return;
-  await sb.from('users').delete().eq('id', id);
+  const { data, error } = await sb.rpc('admin_delete_user', { pw_hash: adminPwHash, p_user_id: id });
+  if (error || !data?.success) { toast('Chyba při mazání', 'error'); return; }
   toast('Uživatel smazán');
   loadUsers();
 }
 
 // ── MESSAGES ──
 async function loadMessages() {
-  const { data } = await sb.from('messages').select('*').order('created_at', { ascending: false });
+  const result = await sb.rpc('admin_get_messages', { pw_hash: adminPwHash });
+  const data = result.data?.data || [];
   const tbody = document.querySelector('#messagesTable tbody');
   tbody.innerHTML = (data || []).map(m => `<tr>
     <td>${esc(m.name)}</td>
@@ -386,14 +397,16 @@ async function loadMessages() {
 }
 
 async function markRead(id) {
-  await sb.from('messages').update({ is_read: true }).eq('id', id);
+  const { data, error } = await sb.rpc('admin_mark_message_read', { pw_hash: adminPwHash, p_message_id: id });
+  if (error || !data?.success) { toast('Chyba', 'error'); return; }
   toast('Označeno jako přečtené');
   loadMessages();
 }
 
 async function deleteMessage(id) {
   if (!confirm('Smazat zprávu?')) return;
-  await sb.from('messages').delete().eq('id', id);
+  const { data, error } = await sb.rpc('admin_delete_message', { pw_hash: adminPwHash, p_message_id: id });
+  if (error || !data?.success) { toast('Chyba při mazání', 'error'); return; }
   toast('Zpráva smazána');
   loadMessages();
 }
@@ -436,7 +449,15 @@ async function saveContent() {
   document.querySelectorAll('#contentFields [data-field]').forEach(el => {
     fields[el.dataset.field] = el.value;
   });
-  await sb.from('content').update({ fields }).eq('block_key', activeBlock);
+  const { data, error } = await sb.rpc('admin_update_content', {
+    pw_hash: adminPwHash,
+    p_block_key: activeBlock,
+    p_fields: fields
+  });
+  if (error || !data?.success) {
+    toast('Chyba při ukládání obsahu: ' + (data?.error || error?.message || 'neznámá'), 'error');
+    return;
+  }
   toast('Obsah uložen — změny se projeví po refreshi webu');
 }
 
@@ -468,8 +489,18 @@ async function saveSettings() {
     if (!updates[key]) updates[key] = { ...settingsData[key].value };
     updates[key][field] = el.value;
   });
+  let allOk = true;
   for (const [key, value] of Object.entries(updates)) {
-    await sb.from('settings').update({ value }).eq('key', key);
+    const { data, error } = await sb.rpc('admin_update_settings', {
+      pw_hash: adminPwHash,
+      p_key: key,
+      p_value: value
+    });
+    if (error || !data?.success) { allOk = false; }
+  }
+  if (!allOk) {
+    toast('Chyba při ukládání nastavení', 'error');
+    return;
   }
   toast('Nastavení uloženo');
 }
