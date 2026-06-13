@@ -83,54 +83,61 @@
 <script src="js/cms.js"></script>
 <script src="js/main.js"></script>
 <script>
-(async function() {
+(function () {
   const grid = document.getElementById('marketListings');
-  try {
-    const listings = await API.getListings();
+  const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC' };
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  function renderListings(listings) {
     if (!listings.length) {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-muted)">Momentálně nejsou k dispozici žádné nabídky.</div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-muted)">V této kategorii nejsou žádné nabídky.</div>';
       return;
     }
-    const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC' };
+    // Náhledová mřížka čte VIEW listings_preview → jen marketingové sloupce
+    // (bez popisu/kontaktů). Plný detail je na inzerat.html (gated předplatným).
     grid.innerHTML = listings.map(l => `
       <a href="inzerat.html?id=${l.id}" class="listing-card reveal" data-type="${l.type}">
         <div class="listing-badge badge-${l.type}">${typeNames[l.type] || l.type}</div>
         <h3>${esc(l.title)}</h3>
-        <p>${esc((l.description || '').substring(0, 120))}${(l.description||'').length > 120 ? '...' : ''}</p>
         <div class="listing-meta">
           <span class="listing-price">${l.price ? Number(l.price).toLocaleString('cs-CZ') + ' Kč' : 'Na vyžádání'}</span>
           ${l.discount_pct ? '<span class="listing-discount">-' + l.discount_pct + ' %</span>' : ''}
         </div>
-        <div class="listing-location">${l.location ? '📍 ' + l.location : ''}</div>
+        <div class="listing-location">${l.location ? '📍 ' + esc(l.location) : ''}</div>
         <span class="listing-detail-link">Zobrazit detail →</span>
       </a>
     `).join('');
 
-    // Re-init scroll reveal for new elements
     if ('IntersectionObserver' in window) {
       const obs = new IntersectionObserver(entries => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); }});
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); } });
       }, { threshold: 0.15 });
       grid.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     }
-
-    // Re-init filters
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const type = btn.dataset.type;
-        grid.querySelectorAll('.listing-card').forEach(card => {
-          card.style.display = (type === 'all' || card.dataset.type === type) ? '' : 'none';
-        });
-      });
-    });
-  } catch (e) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-muted)">Nepodařilo se načíst nabídky. Zkuste to později.</div>';
   }
-})();
 
-function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  // Server-side filtr typu přes API.getListingsPreview({ type }).
+  async function loadListings(type) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-muted)">Načítání nabídek...</div>';
+    try {
+      const filters = (type && type !== 'all') ? { type } : {};
+      renderListings(await API.getListingsPreview(filters));
+    } catch (e) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-muted)">Nepodařilo se načíst nabídky. Zkuste to později.</div>';
+    }
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadListings(btn.dataset.type);   // znovu-načte jen daný typ ze serveru
+    });
+  });
+
+  loadListings('all');
+})();
 </script>
 </body>
 </html>
