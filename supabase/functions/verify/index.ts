@@ -37,7 +37,7 @@ const ISIR_ENDPOINT = "https://isir.justice.cz:8443/isir_cuzk_ws/IsirWsCuzkServi
 const ARES_ENDPOINT = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/";
 const DPH_ENDPOINT = "https://adisrws.mfcr.cz/adistc/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP";
 const RESULT_TTL_DAYS = 30;
-const MODE = (Deno.env.get("VERIFY_MODE") ?? "mock").toLowerCase(); // 'mock' | 'live'
+const MODE = (Deno.env.get("VERIFY_MODE") ?? "live").toLowerCase(); // 'mock' | 'live' (default live; secret může přepnout)
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
