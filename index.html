@@ -222,7 +222,7 @@ function vSetType(t) {
 const V_LABELS = { ares:'ARES', isir:'Insolvence', dph:'Nespolehlivý DPH', cee:'Exekuce', katastr:'Katastr', vozidla:'Vozidla', atp:'ATP', bankid:'Bank iD' };
 async function verifyHome() {
   const box = document.getElementById('vResult');
-  let subject;
+  let subject, displayName = '';
   if (vType === 'po') {
     const ico = (document.getElementById('vIco').value || '').replace(/\D/g, '');
     if (ico.length !== 8) { box.innerHTML = '<span class="verr">Zadejte platné 8místné IČO.</span>'; return; }
@@ -233,11 +233,19 @@ async function verifyHome() {
     const birthDate = document.getElementById('vBirth').value;
     if (!firstName || !lastName || !birthDate) { box.innerHTML = '<span class="verr">Vyplňte jméno, příjmení a datum narození.</span>'; return; }
     subject = { type:'fo', firstName, lastName, birthDate };
+    displayName = firstName + ' ' + lastName;
   }
   const btn = document.getElementById('vBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Ověřuji…'; }
   box.innerHTML = '<span class="vmuted">Kontroluji rejstříky…</span>';
   try {
+    // Název firmy z ARES (veřejné REST, fail-soft) — zobrazí se ve výsledku.
+    if (subject.type === 'po') {
+      try {
+        const ar = await fetch('https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/' + subject.ico, { headers: { Accept: 'application/json' } });
+        if (ar.ok) displayName = (await ar.json()).obchodniJmeno || '';
+      } catch (_e) { /* fail-soft */ }
+    }
     const res = await API.verify(subject, 'foc_nologin');
     if (res.rateLimited) { box.innerHTML = '<span class="verr">Vyčerpán denní limit bezplatných kontrol. Přihlaste se pro více.</span>'; }
     else if (res.error) { box.innerHTML = '<span class="verr">' + res.error + '</span>'; }
@@ -247,7 +255,9 @@ async function verifyHome() {
         return `<div class="vrow"><span class="vgly v-${v.status}">${v.glyph}</span><span class="vlbl">${V_LABELS[k] || k}</span><span class="vdet">${detail}</span></div>`;
       }).join('');
       const score = res.risk_score ?? 0;
-      box.innerHTML = `<div class="vscore">Rizikové skóre: <b>${score}/100</b></div>${rows}<a class="vmore" href="overeni-najemce.html">Detailní prověrka →</a>`;
+      const nm = (displayName || res.subject_name || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+      const nameRow = nm ? `<div class="vname">🏢 <b>${nm}</b></div>` : '';
+      box.innerHTML = `${nameRow}<div class="vscore">Rizikové skóre: <b>${score}/100</b></div>${rows}<a class="vmore" href="overeni-najemce.html">Detailní prověrka →</a>`;
     }
   } catch (e) {
     box.innerHTML = '<span class="verr">Ověření se nepodařilo. Zkuste to prosím později.</span>';

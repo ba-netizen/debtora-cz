@@ -97,7 +97,12 @@ const API = {
     const { data, error } = await sbClient.functions.invoke('verify', {
       body: { subject, level, request_id, confirm },
     });
-    if (error) throw new Error(error.message || 'Ověření se nezdařilo.');
+    if (error) {
+      // Non-2xx (429 rate limit, 402 nedostatek kreditů, 401 …) — vrať tělo
+      // odpovědi (obsahuje rateLimited/error/quote), ať to UI umí zobrazit.
+      try { const body = await error.context.json(); return { ...body, request_id }; } catch (_e) { /* fallthrough */ }
+      throw new Error(error.message || 'Ověření se nezdařilo.');
+    }
     return { ...data, request_id }; // { quote?, results?, risk_score?, mode, level }
   },
 

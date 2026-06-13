@@ -126,6 +126,18 @@ async function checkDph(subject: SubjectPO): Promise<RegistryResult> {
     : { status: "clear", detail: "Není veden jako nespolehlivý plátce." };
 }
 
+// Dohledání názvu firmy z ARES (vždy — i v mock režimu; veřejné REST, fail-soft).
+async function aresName(ico: string): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(ARES_ENDPOINT + encodeURIComponent(ico), { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.obchodniJmeno as string) ?? null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 // Dispatch dle režimu. V live režimu mají adapter jen isir/ares/dph/cee.
 async function runRegistry(registry: string, subject: Subject): Promise<RegistryResult> {
   if (MODE !== "live") return runRegistryMock(registry, subject);
@@ -164,13 +176,14 @@ async function persist(
   riskScore: number,
   results: Record<string, RegistryResult>,
   requestId: string | null,
+  subjectName: string | null,
 ): Promise<string | null> {
   try {
     const { data: req } = await admin.from("verification_requests").insert({
       user_id: userId,
       request_id: requestId,
       subject_type: subject.type,
-      subject_name: subject.type === "fo" ? `${subject.firstName} ${subject.lastName}` : null,
+      subject_name: subjectName,
       subject_birthdate: subject.type === "fo" ? subject.birthDate : null,
       subject_ico: subject.type === "po" ? subject.ico : null,
       level,
@@ -251,11 +264,16 @@ Deno.serve(async (req: Request) => {
 
   const admin = adminClient();
 
+  // Název subjektu do výsledku: FO = jméno+příjmení; PO = reálný název z ARES.
+  let subjectName: string | null = subject.type === "fo"
+    ? `${subject.firstName} ${subject.lastName}`
+    : await aresName(subject.ico);
+
   // ── A1: IDEMPOTENCE ── stejný request_id → vrať uložený výsledek, bez strhu.
   if (requestId) {
     const { data: prev } = await admin
       .from("verification_requests")
-      .select("id, risk_score, level")
+      .select("id, risk_score, level, subject_name")
       .eq("request_id", requestId)
       .maybeSingle();
     if (prev) {
@@ -270,7 +288,7 @@ Deno.serve(async (req: Request) => {
       }
       return json({
         mode: MODE, level: prev.level ?? level, risk_score: prev.risk_score ?? 0,
-        results: toVerdicts(results), idempotent: true,
+        results: toVerdicts(results), subject_name: prev.subject_name ?? subjectName, idempotent: true,
       });
     }
   }
@@ -333,7 +351,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const riskScore = computeRiskScore(results);
-  await persist(admin, userId, subject, level, riskScore, results, requestId);
+  await persist(admin, userId, subject, level, riskScore, results, requestId, subjectName);
 
-  return json({ mode: MODE, level, risk_score: riskScore, results: toVerdicts(results), budget });
+  return json({ mode: MODE, level, risk_score: riskScore, results: toVerdicts(results), subject_name: subjectName, budget });
 });
