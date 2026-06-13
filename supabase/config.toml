@@ -1,0 +1,12 @@
+# Supabase konfigurace Edge Functions
+# payment-callback volá Comgate server-to-server bez JWT — ověřování vypnuto,
+# bezpečnost zajišťuje zpětné ověření platby přes Comgate /v1.0/status.
+
+[functions.payment-callback]
+verify_jwt = false
+
+[functions.verify]
+verify_jwt = true
+
+[functions.payment-create]
+verify_jwt = true
