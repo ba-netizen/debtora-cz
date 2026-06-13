@@ -29,6 +29,7 @@ import {
   LEVELS,
   levelColumn,
   runRegistryMock,
+  subjectHash,
   verdictGlyph,
 } from "../_shared/registries.ts";
 
@@ -162,10 +163,12 @@ async function persist(
   level: Level,
   riskScore: number,
   results: Record<string, RegistryResult>,
+  requestId: string | null,
 ): Promise<string | null> {
   try {
     const { data: req } = await admin.from("verification_requests").insert({
       user_id: userId,
+      request_id: requestId,
       subject_type: subject.type,
       subject_name: subject.type === "fo" ? `${subject.firstName} ${subject.lastName}` : null,
       subject_birthdate: subject.type === "fo" ? subject.birthDate : null,
@@ -191,6 +194,27 @@ async function persist(
   }
 }
 
+// Verdikt-objekty pro odpověď.
+function toVerdicts(results: Record<string, RegistryResult>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [registry, r] of Object.entries(results)) {
+    out[registry] = {
+      status: r.status,
+      glyph: verdictGlyph(r.status),
+      detail: r.detail ?? r.message ?? null,
+      price: r.price ?? 0,
+    };
+  }
+  return out;
+}
+
+// Klientská IP (za proxy Supabase/Vercel).
+function clientIp(req: Request): string | null {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("x-real-ip");
+}
+
 // ═══════════════ HANDLER ═══════════════
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -210,71 +234,106 @@ Deno.serve(async (req: Request) => {
   // Vstup
   let subject: Subject | null = null;
   let level: Level = "basic";
+  let requestId: string | null = null;
+  let confirm = false;
   try {
     const body = await req.json();
     subject = validateSubject(body.subject);
     if (LEVELS.includes(body.level)) level = body.level;
+    if (typeof body.request_id === "string") requestId = body.request_id;
+    confirm = body.confirm === true;
   } catch (_e) { /* fallthrough */ }
   if (!subject) return json({ error: "Neplatné vstupní údaje." }, 400);
 
-  // Úroveň foc_login+ vyžaduje přihlášení
   if (level !== "foc_nologin" && !userId) {
     return json({ error: "Pro tuto úroveň ověření se přihlaste.", needsAuth: true }, 401);
   }
 
   const admin = adminClient();
-  const registries = (await loadRegistriesForLevel(admin, level))
-    .filter((r) => r.enabled && r.included);
 
-  // Dotaz na jednotlivé rejstříky (placené nejdřív strhnou kredit; selhání → refund)
-  const results: Record<string, RegistryResult> = {};
-  for (const reg of registries) {
-    const price = reg.price_credits;
-
-    if (price > 0) {
-      if (!userId) { results[reg.registry] = { status: "locked", message: "Vyžaduje přihlášení.", price }; continue; }
-      const { data: spent } = await admin.rpc("spend_credits", {
-        p_user: userId, p_amount: price, p_reason: "spend",
+  // ── A1: IDEMPOTENCE ── stejný request_id → vrať uložený výsledek, bez strhu.
+  if (requestId) {
+    const { data: prev } = await admin
+      .from("verification_requests")
+      .select("id, risk_score, level")
+      .eq("request_id", requestId)
+      .maybeSingle();
+    if (prev) {
+      const { data: rows } = await admin
+        .from("verification_results")
+        .select("registry, status, payload")
+        .eq("request_id", prev.id);
+      const results: Record<string, RegistryResult> = {};
+      for (const row of rows ?? []) {
+        const p = (row.payload ?? {}) as { detail?: string; price?: number };
+        results[row.registry] = { status: row.status, detail: p.detail ?? undefined, price: p.price ?? 0 };
+      }
+      return json({
+        mode: MODE, level: prev.level ?? level, risk_score: prev.risk_score ?? 0,
+        results: toVerdicts(results), idempotent: true,
       });
-      if (!spent) {
-        results[reg.registry] = { status: "locked", message: `Nedostatek kreditů (potřeba ${price}).`, price };
-        continue;
-      }
-      let r: RegistryResult;
-      try {
-        r = await runRegistry(reg.registry, subject);
-      } catch (e) {
-        console.error(`[verify] ${reg.registry}:`, e);
-        r = { status: "error", message: "Kontrolu se nepodařilo provést. Kredity jsme vrátili." };
-      }
-      // refund při selhání placené kontroly
-      if (r.status === "error" || r.status === "locked") {
-        await admin.rpc("refund_credits", { p_user: userId, p_amount: price, p_reason: "refund", p_payment: null });
-      }
-      r.price = price;
-      results[reg.registry] = r;
-    } else {
-      try {
-        results[reg.registry] = await runRegistry(reg.registry, subject);
-      } catch (e) {
-        console.error(`[verify] ${reg.registry}:`, e);
-        results[reg.registry] = { status: "error", message: "Rejstřík se nepodařilo dotázat." };
-      }
     }
   }
 
-  const riskScore = computeRiskScore(results);
-  await persist(admin, userId, subject, level, riskScore, results);
+  // ── A2/A3: rozpočet podle úrovně ── vyber zapnuté rejstříky dostupné v úrovni.
+  const registries = (await loadRegistriesForLevel(admin, level)).filter((r) => r.enabled && r.included);
+  const totalCredits = registries.reduce((sum, r) => sum + (r.price_credits ?? 0), 0);
+  const budget = {
+    registries: registries.map((r) => ({ registry: r.registry, price: r.price_credits })),
+    total_credits: totalCredits,
+  };
 
-  // Odpověď s verdikt-glyphem per rejstřík
-  const verdicts: Record<string, unknown> = {};
-  for (const [registry, r] of Object.entries(results)) {
-    verdicts[registry] = {
-      status: r.status,
-      glyph: verdictGlyph(r.status),
-      detail: r.detail ?? r.message ?? null,
-      price: r.price ?? 0,
-    };
+  // Placená úroveň bez potvrzení → vrať jen rozpočet (předběžný souhlas).
+  if (totalCredits > 0 && !confirm) {
+    return json({ mode: MODE, level, quote: budget, request_id: requestId });
   }
-  return json({ mode: MODE, level, risk_score: riskScore, results: verdicts });
+
+  // ── D4: rate limit pro FOC (bezplatné) úrovně ──
+  if (totalCredits === 0) {
+    const ip = clientIp(req);
+    const { data: allowed } = await admin.rpc("foc_check_and_count", {
+      p_ip: ip, p_subject_hash: subjectHash(subject),
+    });
+    if (allowed === false) {
+      return json({
+        error: "Překročen denní limit bezplatných kontrol. Přihlaste se nebo zvolte placenou úroveň.",
+        rateLimited: true,
+      }, 429);
+    }
+  }
+
+  // ── Strh celkové ceny jedním spend_credits (placené úrovně) ──
+  if (totalCredits > 0) {
+    if (!userId) return json({ error: "Pro placenou kontrolu se přihlaste.", needsAuth: true }, 401);
+    const { data: spent } = await admin.rpc("spend_credits", {
+      p_user: userId, p_amount: totalCredits, p_reason: "spend",
+    });
+    if (!spent) {
+      return json({ error: `Nedostatek kreditů (potřeba ${totalCredits}).`, needCredits: totalCredits, quote: budget }, 402);
+    }
+  }
+
+  // ── Dotaz na rejstříky; selhání placeného → refund jeho podílu ──
+  const results: Record<string, RegistryResult> = {};
+  for (const reg of registries) {
+    const price = reg.price_credits ?? 0;
+    let r: RegistryResult;
+    try {
+      r = await runRegistry(reg.registry, subject);
+    } catch (e) {
+      console.error(`[verify] ${reg.registry}:`, e);
+      r = { status: "error", message: "Kontrolu se nepodařilo provést." };
+    }
+    // Technické selhání placené kontroly → vrať podíl ceny.
+    if (price > 0 && userId && (r.status === "error" || r.status === "unavailable")) {
+      await admin.rpc("refund_credits", { p_user: userId, p_amount: price, p_reason: "refund", p_payment: null });
+    }
+    r.price = price;
+    results[reg.registry] = r;
+  }
+
+  const riskScore = computeRiskScore(results);
+  await persist(admin, userId, subject, level, riskScore, results, requestId);
+
+  return json({ mode: MODE, level, risk_score: riskScore, results: toVerdicts(results), budget });
 });

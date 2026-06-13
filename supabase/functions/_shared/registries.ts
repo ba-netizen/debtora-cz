@@ -26,6 +26,11 @@ function subjectSeed(subject: Subject): number {
   return h;
 }
 
+/** Stabilní textový hash subjektu (rate limiting per subjekt). */
+export function subjectHash(subject: Subject): string {
+  return subjectSeed(subject).toString(16);
+}
+
 /** Sentinel pro simulaci selhání kontroly (test refundu kreditu). */
 export function isFailureSentinel(subject: Subject): boolean {
   if (subject.type === "po") return subject.ico === "00000000";

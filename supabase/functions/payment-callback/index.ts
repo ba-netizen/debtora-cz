@@ -13,6 +13,12 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkCee, type RegistryResult, type Subject } from "../_shared/cee.ts";
+import {
+  sendEmail,
+  tplPaymentCredits,
+  tplPaymentSingle,
+  tplPaymentSubscription,
+} from "../_shared/email.ts";
 
 const COMGATE_STATUS = "https://payments.comgate.cz/v1.0/status";
 const RESULT_TTL_DAYS = 30;
@@ -97,7 +103,7 @@ Deno.serve(async (req: Request) => {
   const refId = status.get("refId") ?? "";
   const { data: payment } = await admin
     .from("payments")
-    .select("id, user_id, product, amount_haleru, status, subject, credits_granted")
+    .select("id, user_id, email, product, amount_haleru, status, subject, credits_granted")
     .eq("id", refId)
     .eq("comgate_trans_id", transId)
     .single();
@@ -131,13 +137,23 @@ Deno.serve(async (req: Request) => {
     // jednorázová CEE kontrola po zaplacení
     const subject = payment.subject as Subject | null;
     if (subject) await runCeeAndStore(admin, payment.id, payment.user_id, subject);
+    const t = tplPaymentSingle();
+    await sendEmail(payment.email, t.subject, t.html); // fail-soft
+
   } else if (payment.product === "sub_inzerce_monthly") {
-    // měsíční předplatné Inzerce — aktivace/prodloužení období
+    // měsíční předplatné Inzerce — aktivace/prodloužení (idempotentně: status='paid'
+    // je nastaven výše, duplicitní callback se zastaví na kontrole na začátku).
     if (payment.user_id) {
       await admin.rpc("activate_subscription", {
         p_user: payment.user_id, p_service: "inzerce", p_months: 1, p_payment: payment.id,
       });
+      const { data: sub } = await admin.from("subscriptions")
+        .select("current_period_end").eq("user_id", payment.user_id).eq("service", "inzerce").maybeSingle();
+      const end = sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString("cs-CZ") : "—";
+      const t = tplPaymentSubscription(end);
+      await sendEmail(payment.email, t.subject, t.html); // fail-soft
     }
+
   } else if (CREDITS[payment.product]) {
     // balíček kreditů — add_credits je IDEMPOTENTNÍ dle payment_id (D8)
     const credits = CREDITS[payment.product];
@@ -146,9 +162,13 @@ Deno.serve(async (req: Request) => {
         p_user: payment.user_id, p_amount: credits, p_reason: "purchase", p_payment: payment.id,
       });
       await admin.from("payments").update({ credits_granted: credits }).eq("id", payment.id);
+      const { data: uc } = await admin.from("user_credits")
+        .select("balance").eq("user_id", payment.user_id).maybeSingle();
+      const t = tplPaymentCredits(credits, uc?.balance ?? credits);
+      await sendEmail(payment.email, t.subject, t.html); // fail-soft
     }
   }
 
-  // TODO fáze 2: vystavit fakturu (Fakturoid API) a poslat e-mail s reportem
+  // TODO fáze 2: vystavit fakturu (Fakturoid API)
   return new Response("OK");
 });
