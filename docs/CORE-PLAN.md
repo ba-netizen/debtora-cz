@@ -70,6 +70,19 @@ Platby: `payments`
 Každá migrace je idempotentní (`create table if not exists`, `create or replace`, `drop policy if exists`).
 Spouští se v pořadí na prázdné DB → viz akceptační kritéria v CORE-README.
 
+## Followup (sql/014–017, edge, js) — rozhodnutí
+
+| # | Rozhodnutí | Pozn. |
+|---|-----------|-------|
+| F1 | **Idempotence `verify` přes `request_id`** (klient generuje UUID/pokus). Replay vrátí uložené `verification_results` bez strhu/dotazů. | A1. „Jedna logická transakce" je v edge prostředí best-effort: replay-po-úspěchu je plně pokryt; krajní případ (charge OK, persist selže) může při retry strhnout znovu — pojištěno unique indexem na `request_id` proti duplicitě výsledků. |
+| F2 | **Cenový engine dle úrovně:** cena = součet `price_credits` zapnutých rejstříků v úrovni. Placená úroveň → nejdřív **quote** (předběžný souhlas), po `confirm` jeden `spend_credits`. Selhání placeného rejstříku (`error`/`unavailable`) → `refund_credits` jeho podílu. | A2/A3. FOC (cena 0) nečerpá. Fail-open při výpadku `registry_config`. |
+| F3 | **`listings_preview` skrývá položky majitele bez aktivního předplatného** Inzerce a se suspendovaným storefrontem. Data se nemažou (vlastník je vidí dál). Systémové položky `owner_id IS NULL` (seed) zůstávají viditelné. | C2. Volitelný `sync_storefront_status()` jen zrcadlí stav pro admin přehled. |
+| F4 | **Zprávy jen pro přihlášené** (INSERT `to authenticated`); vlastník inzerátu vidí zprávy ke svým inzerátům. | C3. |
+| F5 | **GDPR:** `credit_transactions.user_id` změněno na `ON DELETE SET NULL`; `delete_account()` anonymizuje profil + zprávy a odváže `payments`/`credit_transactions` (retence). Skutečné smazání `auth.users` dělá edge `delete-account` přes admin API. | D3. |
+| F6 | **FOC rate limit** v `foc_rate_limit`: default 5/IP/den + 2/subjekt/den (z `settings.foc_limits`, konfigurovatelné). Překročení → HTTP 429. | D4. |
+| F7 | **Transakční e-maily přes Resend** (fail-soft): platba (kredity/předplatné/single) + moderace inzerátu. Auth e-maily řeší Supabase Auth. | D1. Moderace běží přes edge `admin-moderate-listing`, aby e-mail odešel. |
+| F8 | **Storage:** `listing-files` privátní (signed URL, upload jen vlastník listingu), `storefront-logos` veřejný read (upload jen vlastník storefrontu). `listing_files.file_url` = path v bucketu. | D2. Limity/MIME vynuceny na bucketu i ve frontendu. |
+
 ## Mimo rozsah (fáze 2)
 
 iOS app, produkční `live` CEE (jen adapter+env), Fakturoid, monitoring/PDF report.

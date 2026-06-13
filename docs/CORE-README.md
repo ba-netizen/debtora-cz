@@ -62,14 +62,25 @@ supabase secrets set \
   SUPABASE_URL=…  SUPABASE_ANON_KEY=…  SUPABASE_SERVICE_ROLE_KEY=… \
   VERIFY_MODE=mock \
   COMGATE_MERCHANT=…  COMGATE_SECRET=…  COMGATE_TEST=true \
-  CEE_API_URL=  CEE_API_KEY=
+  CEE_API_URL=  CEE_API_KEY= \
+  RESEND_API_KEY=  EMAIL_FROM="Debtora CZ <noreply@debtora.cz>"
 
 supabase functions deploy verify
 supabase functions deploy payment-create
 supabase functions deploy payment-callback --no-verify-jwt   # webhook bez JWT
+supabase functions deploy admin-moderate-listing
+supabase functions deploy delete-account
 ```
 Comgate nastav callback (notifikační) URL na `…/functions/v1/payment-callback`.
 `VERIFY_MODE=mock` je default — produkční živé rejstříky se zapnou `VERIFY_MODE=live`.
+
+**pg_cron** (úklid ověření + sync storefrontů): povol rozšíření `pg_cron` v Supabase
+(Database → Extensions); migrace 016 joby založí sama (guarded DO blok). Bez rozšíření
+se přeskočí — `cleanup_expired_verifications()` / `sync_storefront_status()` lze volat ručně.
+
+**Storage:** migrace 017 založí buckety i RLS na `storage.objects`. Spouštět v Supabase
+(schema `storage` musí existovat). `listing-files` je privátní → frontend čte přes
+`createSignedUrl`; `storefront-logos` je veřejný.
 
 ## 4. Env proměnné
 
@@ -98,6 +109,18 @@ Legenda: ✅ ověřeno návrhem/kódem · 🧪 ověřit živým během na Supaba
 - [x] ✅ `add_credits` / `spend_credits` / `refund_credits` zapisují každý pohyb do `credit_transactions`. *(006)*
 - [x] ✅ Service-role klíč není ve frontendu (`grep -ri service_role js/` = 0); anon klíč jen pro veřejné čtení přes RLS. AdminAPI běží na session + `admin_*` RPC.
 - [x] ✅ `docs/CORE-PLAN.md` a `docs/CORE-README.md` existují a jsou aktuální.
+
+### Akceptační kritéria — followup (014–017 + edge/js)
+
+- [x] ✅ `verify` se stejným `request_id` nestrhne kredit 2× a vrátí původní výsledek (idempotenční lookup + `uq_vr_request_id`). *(014 + verify A1)*
+- [x] ✅ FULL kontrola PO strhne **součet** kreditů zapnutých rejstříků jedním `spend_credits`; selhaný rejstřík (`error`/`unavailable`) se refunduje. Placená úroveň vrací nejdřív `quote`. *(verify A2/A3)*
+- [x] ✅ `listings_preview` neukáže položky majitele bez aktivního předplatného Inzerce (ani se suspendovaným storefrontem); data zůstávají, vlastník vidí dál. *(015 C2)*
+- [x] ✅ `messages` INSERT odepřen anonymovi (`to authenticated`); vlastník vidí zprávy ke svým inzerátům. *(015 C3)*
+- [x] ✅ `payment-callback`: `pack50`→50 kreditů; `sub_inzerce_monthly`→aktivní předplatné, idempotentně (guard přes `status='paid'` + idempotentní `add_credits`). *(payment-callback)*
+- [x] ✅ E-mail odejde po platbě i po moderaci inzerátu; výpadek e-mailu (fail-soft) neshodí transakci. *(email.ts + callback + admin-moderate-listing)* 🧪 ověřit s `RESEND_API_KEY`.
+- [x] ✅ `listing-files` privátní (přístup přes signed URL), `storefront-logos` veřejný read; upload gated vlastnictvím. *(017 D2)* 🧪 ověřit v Supabase Storage.
+- [x] ✅ `cleanup_expired_verifications` + `sync_storefront_status` aktivovány přes pg_cron (guarded DO blok); `delete_account()` anonymizuje a zachová účetní audit (`credit_transactions`/`payments` odvázány, ne smazány). *(016 D3)* 🧪 vyžaduje rozšíření `pg_cron`.
+- [x] ✅ FOC kontrola nad limit vrací 429 (`foc_check_and_count`, limity z `settings.foc_limits`). *(014 D4 + verify)*
 
 ## Hotovo / zbývá k produkci
 
