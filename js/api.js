@@ -1,312 +1,232 @@
 /* ============================================================
-   DEBTORA CZ — Supabase API Client
-   Replaces: js/api.js (Netlify Functions calls)
-   
-   Usage: Include supabase-config.js before this file:
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-   <script src="js/supabase-config.js"></script>
-   <script src="js/api.js"></script>
+   DEBTORA CZ — API klient nad Supabase
+   Frontend pouze ČTE přes RLS a INICIUJE akce (RPC / edge funkce).
+   Service-role klíč zde NIKDY není (D3). Admin = přihlášený auth
+   uživatel s řádkem v admin_users; píše přes admin_* RPC.
+
+   Načti po:
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <script src="js/supabase-config.js"></script>
+     <script src="js/api.js"></script>
    ============================================================ */
 
-// ── Initialize Supabase Client ──
 const SUPABASE_URL = window.DEBTORA_CONFIG?.SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
 const SUPABASE_ANON_KEY = window.DEBTORA_CONFIG?.SUPABASE_ANON_KEY || 'YOUR_ANON_KEY';
 
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Make available globally for other scripts
 window.sbClient = sbClient;
 
-// ── Public API (no auth required) ──
 const API = {
-  // ── LISTINGS ──
-  async getListings(filters = {}) {
-    let query = sbClient
-      .from('listings')
-      .select('*')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+  // ═══════════ MARKETPLACE ═══════════
 
-    if (filters.type) query = query.eq('type', filters.type);
-    if (filters.category) query = query.eq('category', filters.category);
-    if (filters.location) query = query.ilike('location', `%${filters.location}%`);
-    if (filters.min_price) query = query.gte('price', filters.min_price);
-    if (filters.max_price) query = query.lte('price', filters.max_price);
-    if (filters.limit) query = query.limit(filters.limit);
-
-    const { data, error } = await query;
+  // Veřejný NÁHLED — čte listings_preview (marketingové sloupce, bez detailů).
+  async getListingsPreview(filters = {}) {
+    let q = sbClient.from('listings_preview').select('*').order('created_at', { ascending: false });
+    if (filters.type) q = q.eq('type', filters.type);
+    if (filters.category) q = q.eq('category', filters.category);
+    if (filters.location) q = q.ilike('location', `%${filters.location}%`);
+    if (filters.storefront_id) q = q.eq('storefront_id', filters.storefront_id);
+    if (filters.min_price) q = q.gte('price', filters.min_price);
+    if (filters.max_price) q = q.lte('price', filters.max_price);
+    if (filters.limit) q = q.limit(filters.limit);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
     return data || [];
   },
 
-  async getListing(id) {
-    // Increment view count
-    await sbClient.rpc('increment_views', { listing_id: id }).catch(() => {});
-    
-    const { data, error } = await sbClient
-      .from('listings')
-      .select('*')
-      .eq('id', id)
-      .eq('status', 'active')
-      .single();
+  // Plný DETAIL — čte base listings (gated předplatným/vlastníkem).
+  // Bez předplatného vrátí 0 řádků → { gated:true } pro CTA „Aktivovat Inzerci".
+  async getListingDetail(id) {
+    sbClient.rpc('increment_views', { p_listing: id }).then(() => {}, () => {});
+    const { data, error } = await sbClient.from('listings').select('*').eq('id', id).maybeSingle();
     if (error) throw new Error(error.message);
-    return data;
+    if (!data) return { gated: true };
+    return { gated: false, listing: data };
   },
 
+  // Tvorba inzerátu — JEDINÁ cesta je RPC create_listing.
+  // Vrací { ok, listing_id, charged, error }.
   async createListing(listing) {
-    const { data, error } = await sbClient
-      .from('listings')
-      .insert([{ ...listing, status: 'pending' }])
-      .select()
-      .single();
+    const { data, error } = await sbClient.rpc('create_listing', { p_listing: listing });
     if (error) throw new Error(error.message);
     return data;
   },
 
-  // ── USERS ──
-  async registerUser(userData) {
-    // Hash password client-side (in production, use Supabase Auth instead)
-    const pwHash = await hashPassword(userData.password);
-    delete userData.password;
-
-    const { data, error } = await sbClient
-      .from('users')
-      .insert([{ ...userData, password_hash: pwHash }])
-      .select('id, email, name, company, account_type, created_at')
-      .single();
-    if (error) {
-      if (error.code === '23505') throw new Error('E-mail je již registrován.');
-      throw new Error(error.message);
-    }
-    return data;
+  async getListingFiles(listingId) {
+    const { data } = await sbClient.from('listing_files').select('*')
+      .eq('listing_id', listingId).order('sort_order');
+    return data || [];
   },
 
-  // ── MESSAGES (contact form) ──
-  async sendMessage(msgData) {
-    const { data, error } = await sbClient
-      .from('messages')
-      .insert([msgData])
-      .select()
-      .single();
+  // ═══════════ STOREFRONTY (/s/<slug>) ═══════════
+  async getStorefront(slug) {
+    const { data } = await sbClient.from('storefronts').select('*')
+      .eq('slug', slug).eq('status', 'active').maybeSingle();
+    return data || null;
+  },
+  async getMyStorefront() {
+    const { data } = await sbClient.from('storefronts').select('*').maybeSingle();
+    return data || null;
+  },
+
+  // ═══════════ ZPRÁVY / POPTÁVKY ═══════════
+  async sendMessage(msg) {
+    const { error } = await sbClient.from('messages').insert([msg]);
     if (error) throw new Error(error.message);
     return { success: true, message: 'Zpráva byla odeslána. Odpovíme do 24 hodin.' };
   },
 
-  // ── CONTENT (CMS) ──
-  async getContent(blockKey) {
-    if (blockKey) {
-      const { data, error } = await sbClient
-        .from('content')
-        .select('fields')
-        .eq('block_key', blockKey)
-        .single();
-      if (error) return {};
-      return data?.fields || {};
-    }
-    // Get all content blocks
-    const { data, error } = await sbClient
-      .from('content')
-      .select('block_key, fields');
-    if (error) return {};
-    const result = {};
-    (data || []).forEach(row => { result[row.block_key] = row.fields; });
-    return result;
+  // ═══════════ OVĚŘENÍ (edge `verify`) ═══════════
+  // subject: { type:'po', ico } | { type:'fo', firstName, lastName, birthDate, rc? }
+  // level: 'foc_nologin'|'foc_login'|'basic'|'medium'|'full'
+  async verify(subject, level = 'basic') {
+    const { data, error } = await sbClient.functions.invoke('verify', { body: { subject, level } });
+    if (error) throw new Error(error.message || 'Ověření se nezdařilo.');
+    return data; // { mode, level, risk_score, results }
   },
 
-  // ── SETTINGS ──
+  async getVerificationHistory() {
+    const { data } = await sbClient.from('verification_requests').select('*')
+      .order('created_at', { ascending: false }).limit(50);
+    return data || [];
+  },
+
+  async getRegistryConfig() {
+    const { data } = await sbClient.from('registry_config').select('*').order('sort');
+    return data || [];
+  },
+
+  // ═══════════ PLATBY (edge `payment-create`) ═══════════
+  // product: 'single'|'pack5'|'pack20'|'pack50'|'sub_inzerce_monthly'
+  async createPayment(product, { email, subject } = {}) {
+    const { data, error } = await sbClient.functions.invoke('payment-create', {
+      body: { action: 'create', product, email, subject },
+    });
+    if (error) throw new Error(error.message || 'Platbu se nepodařilo založit.');
+    return data; // { redirect, token } | { error }
+  },
+  async paymentStatus(token) {
+    const { data, error } = await sbClient.functions.invoke('payment-create', {
+      body: { action: 'status', token },
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  // ═══════════ KREDITY ═══════════
+  async getCreditBalance() {
+    const { data } = await sbClient.from('user_credits').select('balance').maybeSingle();
+    return data?.balance ?? 0;
+  },
+  async getCreditHistory() {
+    const { data } = await sbClient.from('credit_transactions').select('*')
+      .order('created_at', { ascending: false }).limit(100);
+    return data || [];
+  },
+
+  // ═══════════ PŘEDPLATNÉ / IDENTITA (gating helpers) ═══════════
+  async hasActiveSubscription(service = 'inzerce') {
+    const user = (await sbClient.auth.getUser()).data.user;
+    if (!user) return false;
+    const { data } = await sbClient.rpc('has_active_subscription', { p_user: user.id, p_service: service });
+    return data === true;
+  },
+  async getSubscription(service = 'inzerce') {
+    const { data } = await sbClient.from('subscriptions').select('*').eq('service', service).maybeSingle();
+    return data || null;
+  },
+  async isIdentityVerified(year = null) {
+    const user = (await sbClient.auth.getUser()).data.user;
+    if (!user) return false;
+    const { data } = await sbClient.rpc('is_identity_verified', { p_user: user.id, p_year: year });
+    return data === true;
+  },
+
+  // ═══════════ CMS (čte cms.js) ═══════════
+  async getContent(blockKey) {
+    if (blockKey) {
+      const { data } = await sbClient.from('content').select('fields').eq('block_key', blockKey).maybeSingle();
+      return data?.fields || {};
+    }
+    const { data } = await sbClient.from('content').select('block_key, fields');
+    const out = {};
+    (data || []).forEach((r) => { out[r.block_key] = r.fields; });
+    return out;
+  },
   async getSettings(key) {
     if (key) {
-      const { data } = await sbClient
-        .from('settings')
-        .select('value')
-        .eq('key', key)
-        .single();
+      const { data } = await sbClient.from('settings').select('value').eq('key', key).maybeSingle();
       return data?.value || {};
     }
     const { data } = await sbClient.from('settings').select('key, value');
-    const result = {};
-    (data || []).forEach(row => { result[row.key] = row.value; });
-    return result;
-  }
+    const out = {};
+    (data || []).forEach((r) => { out[r.key] = r.value; });
+    return out;
+  },
 };
 
-// ── ADMIN API (requires service_role or admin session) ──
+/* ════════════════════════════════════════════════════════════
+   AdminAPI — pro přihlášeného admina (řádek v admin_users).
+   ŽÁDNÝ service-role klíč: čtení přes RLS (is_admin policy),
+   zápis přes admin_* SECURITY DEFINER RPC.
+   ════════════════════════════════════════════════════════════ */
 const AdminAPI = {
-  _token: null,
-
-  setToken(token) { this._token = token; },
-  getToken() { return this._token || localStorage.getItem('debtora_admin_token'); },
-
-  // Create admin-level Supabase client with service role key
-  _adminClient() {
-    const serviceKey = this.getToken();
-    if (!serviceKey) throw new Error('Not authenticated');
-    return window.supabase.createClient(SUPABASE_URL, serviceKey);
+  async isAdmin() {
+    const { data } = await sbClient.rpc('is_admin');
+    return data === true;
   },
 
-  async login(password) {
-    // Verify against admin_users table using anon client + RPC
-    const pwHash = await hashPassword(password);
-    const { data, error } = await sbClient.rpc('admin_login', {
-      pw_hash: pwHash
-    });
-    if (error || !data) throw new Error('Nesprávné heslo');
-    // Store the service role key returned by the function
-    this._token = data.token;
-    localStorage.setItem('debtora_admin_token', data.token);
-    return data;
-  },
-
-  async logout() {
-    this._token = null;
-    localStorage.removeItem('debtora_admin_token');
-  },
-
-  // ── ADMIN: Stats ──
-  async getStats() {
-    const client = this._adminClient();
-    const { data, error } = await client.from('admin_stats').select('*').single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  // ── ADMIN: Listings CRUD ──
-  async getListings(filters = {}) {
-    const client = this._adminClient();
-    let query = client.from('listings').select('*').order('created_at', { ascending: false });
-    if (filters.status) query = query.eq('status', filters.status);
-    if (filters.type) query = query.eq('type', filters.type);
-    const { data, error } = await query;
+  // Čtení (admin RLS umožní vidět vše)
+  async getListings() {
+    const { data, error } = await sbClient.from('listings').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return data || [];
   },
-
-  async updateListing(id, updates) {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('listings')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async deleteListing(id) {
-    const client = this._adminClient();
-    const { error } = await client.from('listings').delete().eq('id', id);
-    if (error) throw new Error(error.message);
-    return { success: true };
-  },
-
-  // ── ADMIN: Users CRUD ──
   async getUsers() {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await sbClient.from('users').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return data || [];
   },
-
-  async updateUser(id, updates) {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('users')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async deleteUser(id) {
-    const client = this._adminClient();
-    const { error } = await client.from('users').delete().eq('id', id);
-    if (error) throw new Error(error.message);
-    return { success: true };
-  },
-
-  // ── ADMIN: Messages ──
   async getMessages() {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await sbClient.from('messages').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return data || [];
   },
 
-  async updateMessage(id, updates) {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('messages')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+  // Zápis přes admin RPC
+  async setListingStatus(id, status) {
+    const { data, error } = await sbClient.rpc('admin_set_listing_status', { p_listing: id, p_status: status });
     if (error) throw new Error(error.message);
     return data;
   },
-
-  async deleteMessage(id) {
-    const client = this._adminClient();
-    const { error } = await client.from('messages').delete().eq('id', id);
-    if (error) throw new Error(error.message);
-    return { success: true };
-  },
-
-  // ── ADMIN: Content CMS ──
-  async getContent(blockKey) {
-    return API.getContent(blockKey);
-  },
-
   async updateContent(blockKey, fields) {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('content')
-      .upsert({ block_key: blockKey, fields }, { onConflict: 'block_key' })
-      .select()
-      .single();
+    const { data, error } = await sbClient.rpc('admin_update_content', { p_block_key: blockKey, p_fields: fields });
     if (error) throw new Error(error.message);
     return data;
   },
-
-  // ── ADMIN: Settings ──
-  async getSettings(key) {
-    return API.getSettings(key);
-  },
-
   async updateSettings(key, value) {
-    const client = this._adminClient();
-    const { data, error } = await client
-      .from('settings')
-      .upsert({ key, value }, { onConflict: 'key' })
-      .select()
-      .single();
+    const { data, error } = await sbClient.rpc('admin_update_settings', { p_key: key, p_value: value });
     if (error) throw new Error(error.message);
     return data;
-  }
+  },
+  async getRegistryConfig() {
+    const { data, error } = await sbClient.rpc('admin_get_registry_config');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async updateRegistryConfig(registry, enabled, price, levels) {
+    const { data, error } = await sbClient.rpc('admin_update_registry_config', {
+      p_registry: registry, p_enabled: enabled, p_price: price, p_levels: levels ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  },
 };
 
-// ── Utility: SHA-256 hash ──
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// ── UI Helpers ──
+// ── UI helpery (sdílené napříč stránkami) ──
 function showToast(message, type = 'info') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
-  
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.textContent = message;
@@ -314,11 +234,10 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.classList.add('show'), 10);
   setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
 }
-
 function setLoading(btn, loading) {
   if (loading) {
     btn.dataset.originalText = btn.textContent;
-    btn.textContent = 'Načítání...';
+    btn.textContent = 'Načítání…';
     btn.disabled = true;
   } else {
     btn.textContent = btn.dataset.originalText || btn.textContent;
@@ -326,7 +245,6 @@ function setLoading(btn, loading) {
   }
 }
 
-// Expose globally
 window.API = API;
 window.AdminAPI = AdminAPI;
 window.showToast = showToast;
