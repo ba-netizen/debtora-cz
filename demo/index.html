@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Debtora CZ — lokální demo jádra</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121b2e; --panel2:#0f1828; --line:#233048;
+    --ink:#e8eef8; --muted:#93a3bd; --accent:#3ea0ff; --accent2:#6ee7b7;
+    --warn:#fbbf24; --bad:#f87171; --ok:#34d399; --chip:#1b2740;
+    --radius:12px; font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16243f 0,#0b1220 60%);
+    color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:rgba(11,18,32,.85);backdrop-filter:blur(8px);z-index:20}
+  .logo{font-weight:800;letter-spacing:.3px;font-size:18px}
+  .logo b{color:var(--accent)}
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:300px 1fr 360px;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+  @media(max-width:1100px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .stat{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .stat:last-child{border-bottom:0}
+  .stat b{font-variant-numeric:tabular-nums}
+  .pill{font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--chip)}
+  .pill.on{color:#062;background:var(--ok);border-color:var(--ok);font-weight:700}
+  .pill.off{color:var(--muted)}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+    background:var(--chip);color:var(--ink);padding:8px 12px;transition:.12s}
+  button:hover{border-color:var(--accent);transform:translateY(-1px)}
+  button.primary{background:linear-gradient(180deg,#48a7ff,#2b7fe0);border-color:#2b7fe0;color:#04101f;font-weight:700}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs button{padding:7px 12px}
+  .tabs button.active{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:700}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+  .listing{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+  .listing .t{font-weight:700}
+  .listing .badge{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2)}
+  .price{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+  .strike{color:var(--muted);text-decoration:line-through;font-size:12px}
+  .disc{color:var(--ok);font-weight:700;font-size:12px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+  input,select{width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:inherit}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:120px}
+  .log{font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;height:520px;overflow:auto;background:#070d18;border-radius:10px;padding:10px;border:1px solid var(--line)}
+  .log .l{padding:3px 0;border-bottom:1px solid #0e1626;white-space:pre-wrap;word-break:break-word}
+  .log .api{color:var(--accent)}
+  .log .ok{color:var(--ok)}
+  .log .err{color:var(--bad)}
+  .log .warn{color:var(--warn)}
+  .log .ledger{color:#c4b5fd}
+  .verdict{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin:6px 0;background:var(--panel2)}
+  .gly{font-size:18px;width:24px;text-align:center}
+  .g-clear{color:var(--ok)} .g-found{color:var(--warn)} .g-na{color:var(--muted)} .g-err{color:var(--bad)}
+  .muted{color:var(--muted)}
+  .score{display:inline-flex;align-items:center;gap:8px;font-weight:800}
+  .meter{height:8px;border-radius:6px;background:#13203a;overflow:hidden;width:140px}
+  .meter>i{display:block;height:100%;background:linear-gradient(90deg,#34d399,#fbbf24,#f87171)}
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+  .kbd{font:11px ui-monospace,monospace;background:var(--chip);padding:1px 6px;border-radius:6px;border:1px solid var(--line)}
+  .sep{height:1px;background:var(--line);margin:12px 0}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .ok-text{color:var(--ok)} .bad-text{color:var(--bad)} .warn-text{color:var(--warn)}
+  h2{font-size:16px;margin:0 0 12px}
+  .hint{background:#0e1830;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:12px;color:var(--muted);margin-bottom:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Debtora <b>CZ</b></div>
+  <span class="tag">lokální demo jádra · in-browser mock (žádný backend)</span>
+  <span class="tag" id="modeTag">VERIFY_MODE = mock</span>
+</header>
+
+<div class="wrap">
+  <!-- ───────────── SESSION / STAV ───────────── -->
+  <aside class="card" id="sessionCard">
+    <h3>Relace &amp; stav</h3>
+    <div class="stat"><span>Uživatel</span><b id="sUser">—</b></div>
+    <div class="stat"><span>Kredity</span><b id="sCredits">0</b></div>
+    <div class="stat"><span>Předplatné Inzerce</span><span class="pill off" id="sSub">neaktivní</span></div>
+    <div class="stat"><span>Totožnost (rok)</span><span class="pill off" id="sIdent">neověřeno</span></div>
+    <div class="stat"><span>Role admin</span><span class="pill off" id="sAdmin">ne</span></div>
+    <div class="sep"></div>
+    <div class="toolbar">
+      <button class="ghost" id="btnLogin">Přihlásit (demo)</button>
+      <button class="ghost" id="btnLogout">Odhlásit</button>
+    </div>
+    <div class="toolbar">
+      <button class="ghost" id="btnAdmin">Přepnout admina</button>
+      <button class="ghost" id="btnReset">Reset dema</button>
+    </div>
+    <div class="note">Demo věrně reprodukuje kontrakty jádra: <span class="kbd">create_listing</span>,
+      <span class="kbd">verify</span> (cenový engine + refund + risk), idempotentní kredity,
+      gating náhled/detail, FOC rate limit. Vše běží jen v prohlížeči.</div>
+  </aside>
+
+  <!-- ───────────── HLAVNÍ PANEL ───────────── -->
+  <main>
+    <div class="tabs" id="tabs">
+      <button data-tab="market" class="active">Tržiště</button>
+      <button data-tab="verify">Ověření</button>
+      <button data-tab="wallet">Kredity &amp; předplatné</button>
+      <button data-tab="create">Vložit inzerát</button>
+      <button data-tab="admin">Admin moderace</button>
+    </div>
+
+    <!-- TRŽIŠTĚ -->
+    <section class="card tabpane" data-pane="market">
+      <h2>Tržiště <span class="muted" style="font-size:12px">— veřejný náhled (listings_preview)</span></h2>
+      <div class="hint">Mřížka čte <b>náhled</b> (marketing). Klik na „Plný detail" čte base <b>listings</b> —
+        bez aktivního předplatného Inzerce vrátí 0 řádků → CTA „Aktivovat Inzerci".</div>
+      <div class="grid" id="marketGrid"></div>
+      <div id="detail"></div>
+    </section>
+
+    <!-- OVĚŘENÍ -->
+    <section class="card tabpane" data-pane="verify" hidden>
+      <h2>Ověření protistrany</h2>
+      <div class="hint">Cena = součet kreditů zapnutých rejstříků v úrovni. Placená úroveň → nejdřív
+        <b>rozpočet (quote)</b>, po potvrzení jeden strh; selhaný rejstřík se <b>refunduje</b>.
+        FOC (zdarma) má denní limit. Tip: IČO <span class="kbd">00000000</span> nebo jméno
+        <span class="kbd">Selhani Test</span> simuluje technické selhání.</div>
+      <div class="row">
+        <div>
+          <label>Typ subjektu</label>
+          <select id="vType"><option value="po">Právnická osoba (IČO)</option><option value="fo">Fyzická osoba</option></select>
+        </div>
+        <div>
+          <label>Úroveň</label>
+          <select id="vLevel">
+            <option value="foc_nologin">FOC bez přihlášení (zdarma)</option>
+            <option value="foc_login">FOC s přihlášením (zdarma)</option>
+            <option value="basic">BASIC</option>
+            <option value="medium">MEDIUM</option>
+            <option value="full" selected>FULL</option>
+          </select>
+        </div>
+      </div>
+      <div id="vPO" class="row">
+        <div><label>IČO (8 číslic)</label><input id="vIco" value="27074358" /></div>
+      </div>
+      <div id="vFO" class="row" hidden>
+        <div><label>Jméno</label><input id="vFirst" value="Jan" /></div>
+        <div><label>Příjmení</label><input id="vLast" value="Novák" /></div>
+        <div><label>Datum narození</label><input id="vBirth" type="date" value="1980-05-12" /></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="primary" id="btnQuote">1) Spočítat rozpočet</button>
+        <button id="btnRun" disabled>2) Potvrdit a spustit</button>
+      </div>
+      <div id="vResult"></div>
+    </section>
+
+    <!-- KREDITY / PŘEDPLATNÉ -->
+    <section class="card tabpane" data-pane="wallet" hidden>
+      <h2>Kredity &amp; předplatné</h2>
+      <div class="hint">Platby simulují Comgate → <b>payment-callback</b>. <b>add_credits</b> je idempotentní
+        dle ID platby — „Zopakovat callback" připíše jen jednou.</div>
+      <div class="grid" id="packGrid"></div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="primary" id="btnSub">Aktivovat předplatné Inzerce (490 Kč / měs.)</button>
+        <button class="ghost" id="btnReplay" disabled>Zopakovat poslední callback (test idempotence)</button>
+      </div>
+    </section>
+
+    <!-- VLOŽIT INZERÁT -->
+    <section class="card tabpane" data-pane="create" hidden>
+      <h2>Vložit inzerát <span class="muted" style="font-size:12px">— RPC create_listing</span></h2>
+      <div class="hint">Tvorba jde <b>výhradně</b> přes <span class="kbd">create_listing</span>. První inzerát v roce
+        strhne 1 kredit a ověří totožnost; další v roce už ne; bez kreditu → <span class="kbd">no_credit</span>.</div>
+      <div class="row">
+        <div><label>Titul</label><input id="cTitle" value="Pohledávka 1,2 mil. Kč se zajištěním" /></div>
+        <div><label>Typ</label><select id="cType"><option value="debt">debt</option><option value="property">property</option><option value="otc">otc</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Cena (Kč)</label><input id="cPrice" value="360000" /></div>
+        <div><label>Původní hodnota</label><input id="cOrig" value="1200000" /></div>
+        <div><label>Lokalita</label><input id="cLoc" value="Plzeň" /></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px"><button class="primary" id="btnCreate">Vytvořit inzerát</button></div>
+      <div id="cResult"></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="card tabpane" data-pane="admin" hidden>
+      <h2>Admin moderace</h2>
+      <div class="hint">Inzeráty se zakládají jako <b>pending</b>. Admin je schválí (→ <b>active</b>, objeví se v tržišti
+        a odejde e-mail) nebo zamítne. Vyžaduje zapnutou roli admin (vlevo).</div>
+      <div id="adminList"></div>
+    </section>
+  </main>
+
+  <!-- ───────────── LEDGER / KONZOLE ───────────── -->
+  <aside class="card">
+    <h3>Živý ledger &amp; volání API</h3>
+    <div class="log" id="log"></div>
+  </aside>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   DEBTORA CORE — věrný in-browser mock (zrcadlí sql/* a edge funkce).
+   ════════════════════════════════════════════════════════════ */
+
+// Matice úroveň × rejstřík + ceny (sql/010_registry_config seed).
+const REGISTRIES = [
+  {registry:'ares',    label:'ARES',                price:0, lvl:{foc_nologin:1,foc_login:1,basic:1,medium:1,full:1}},
+  {registry:'isir',    label:'Insolvence (ISIR)',   price:0, lvl:{foc_nologin:1,foc_login:1,basic:1,medium:1,full:1}},
+  {registry:'dph',     label:'Nespolehlivý DPH',    price:0, lvl:{foc_nologin:1,foc_login:1,basic:1,medium:1,full:1}},
+  {registry:'katastr', label:'Katastr',             price:1, lvl:{basic:1,medium:1,full:1}},
+  {registry:'vozidla', label:'Registr vozidel',     price:1, lvl:{medium:1,full:1}},
+  {registry:'cee',     label:'Exekuce (CEE)',       price:1, lvl:{full:1}},
+  {registry:'atp',     label:'Další (ATP)',         price:1, lvl:{full:1}},
+  {registry:'bankid',  label:'Bank iD',             price:2, lvl:{full:1}},
+];
+// Rizikové váhy (supabase/functions/_shared/registries.ts).
+const RISK_WEIGHT = {cee:45,isir:35,dph:25,atp:20,vozidla:10,katastr:10,ares:15,bankid:0};
+const PRODUCTS = {
+  pack5:{credits:5,czk:575,label:'Balíček 5 kreditů'},
+  pack20:{credits:20,czk:1880,label:'Balíček 20 kreditů'},
+  pack50:{credits:50,czk:4250,label:'Balíček 50 kreditů'},
+};
+const FOC_LIMITS = {per_ip_day:5, per_subject_day:2};
+
+// ── pomocné (deterministický mock adapter dle registries.ts) ──
+function subjectSeed(s){
+  const str = s.type==='po' ? ('po:'+s.ico) : ('fo:'+s.firstName+'|'+s.lastName+'|'+s.birthDate);
+  let h=0; for(let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0; return h;
+}
+function subjectHash(s){ return subjectSeed(s).toString(16); }
+function isFailureSentinel(s){
+  if(s.type==='po') return s.ico==='00000000';
+  return /selhani|fail/i.test((s.firstName||'')+' '+(s.lastName||''));
+}
+function runRegistryMock(reg, s){
+  if(isFailureSentinel(s)) return {status:'error', detail:'Mock: simulované selhání kontroly.'};
+  const hit = (subjectSeed(s) >> (reg.length%8)) % 4 === 0;
+  switch(reg){
+    case 'ares': return {status:'clear', detail:'Subjekt existuje a je aktivní.'};
+    case 'isir': return hit?{status:'found',detail:'Aktivní insolvenční řízení.'}:{status:'clear',detail:'Bez záznamu.'};
+    case 'dph':  return hit?{status:'found',detail:'Veden jako nespolehlivý plátce.'}:{status:'clear',detail:'Spolehlivý plátce.'};
+    case 'cee':  return hit?{status:'found',detail:'Nalezeny 2 exekuce.'}:{status:'clear',detail:'Bez exekucí.'};
+    case 'katastr': return {status:'clear',detail:'1 nemovitost, bez zástav.'};
+    case 'vozidla': return {status:'clear',detail:'Bez záznamu.'};
+    case 'atp': return {status:'clear',detail:'Bez dalších záznamů.'};
+    case 'bankid': return {status:'clear',detail:'Totožnost ověřena.'};
+    default: return {status:'unavailable',detail:'—'};
+  }
+}
+function glyph(st){return st==='clear'?'✓':st==='found'?'⚠':st==='error'?'✕':st==='locked'?'🔒':'—';}
+function glyphClass(st){return st==='clear'?'g-clear':st==='found'?'g-found':st==='error'?'g-err':'g-na';}
+function riskScore(results){let s=0;for(const [r,v] of Object.entries(results))if(v.status==='found')s+=RISK_WEIGHT[r]??10;return Math.min(100,s);}
+function year(){return new Date().getFullYear();}
+
+// ── stav (DB v paměti) ──
+const seedListings = [
+  {id:'s1', owner_id:null, title:'Portfolio spotřebitelských pohledávek 4,2 mil. Kč', type:'debt', status:'active', price:1260000, original_value:4200000, discount_pct:70, location:'Praha', description:'Balík 312 pohledávek s exekučními tituly.', contact_email:'prodej@vymahacka.cz'},
+  {id:'s2', owner_id:null, title:'Bytový dům v nuceném prodeji — Ostrava', type:'property', status:'active', price:8900000, original_value:12500000, discount_pct:29, location:'Ostrava', description:'Dražba, 14 jednotek, výnos ~6 %.', contact_email:'drazba@spravce.cz'},
+  {id:'s3', owner_id:null, title:'OTC akcie regionální e-commerce s.r.o.', type:'otc', status:'active', price:350000, original_value:500000, discount_pct:30, location:'Brno', description:'Minoritní podíl, pink-sheet.', contact_email:'broker@otc.cz'},
+];
+let DB, lastPayment;
+function freshDB(){
+  return {
+    user:null, isAdmin:false,
+    credits:0, ledger:[],
+    subscriptionEnd:null,
+    identityYears:new Set(),
+    listings: JSON.parse(JSON.stringify(seedListings)),
+    payments:{}, processedPayments:new Set(),
+    foc:{}, // key ip|subjectHash -> count ; ip|'' total
+    seq:1,
+  };
+}
+
+// ── logování ──
+function log(msg, cls){const el=document.getElementById('log');const d=document.createElement('div');d.className='l '+(cls||'');d.textContent=msg;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function api(name, payload){log('→ '+name+(payload?'  '+JSON.stringify(payload):''),'api');}
+function ledger(change, reason){DB.ledger.push({change,reason,t:Date.now()});log('  ledger: '+(change>0?'+':'')+change+' ('+reason+')  → zůstatek '+DB.credits,'ledger');}
+
+// ════════════ KONTRAKTY JÁDRA (mock) ════════════
+const Core = {
+  hasActiveSubscription(){ return !!DB.subscriptionEnd && DB.subscriptionEnd>Date.now(); },
+  isIdentityVerified(y){ return DB.identityYears.has(y||year()); },
+
+  // add_credits — idempotentní dle payment ref (sql/006)
+  addCredits(amount, reason, paymentRef){
+    if(reason==='purchase' && paymentRef && DB.processedPayments.has('credit:'+paymentRef)){
+      log('  add_credits: idempotentní — platba '+paymentRef+' už připsána, přeskočeno.','warn'); return;
+    }
+    if(reason==='purchase' && paymentRef) DB.processedPayments.add('credit:'+paymentRef);
+    DB.credits+=amount; ledger(amount, reason);
+  },
+  spendCredits(amount, reason){
+    if(amount<=0) return true;
+    if(DB.credits<amount){ log('  spend_credits: nedostatek (potřeba '+amount+', mám '+DB.credits+')','err'); return false; }
+    DB.credits-=amount; ledger(-amount, reason||'spend'); return true;
+  },
+  refundCredits(amount, reason){ DB.credits+=amount; ledger(amount, reason||'refund'); },
+
+  // create_listing — JEDINÁ cesta tvorby (sql/012)
+  createListing(p){
+    api('rpc create_listing', {title:p.title, type:p.type});
+    if(!DB.user) return {ok:false, error:'not_authenticated'};
+    let charged=false;
+    if(!Core.isIdentityVerified(year())){
+      if(!Core.spendCredits(1,'identity_first_listing')) return {ok:false, error:'no_credit'};
+      DB.identityYears.add(year()); charged=true;
+      log('  seller_identity zapsáno pro rok '+year(),'ok');
+    }
+    const id='u'+(DB.seq++);
+    DB.listings.push({id, owner_id:DB.user, title:p.title, type:p.type, status:'pending',
+      price:+p.price||null, original_value:+p.original_value||null,
+      discount_pct: p.original_value&&p.price?Math.round((1-p.price/p.original_value)*100):null,
+      location:p.location, description:'(detail — viditelný po schválení)', contact_email:DB.user+'@demo.cz'});
+    return {ok:true, listing_id:id, charged};
+  },
+
+  // V demu existuje jediný prodejní účet 'demo-user'; jeho předplatné je DB.subscriptionEnd.
+  ownerHasActiveSub(ownerId){ return ownerId==='demo-user' && Core.hasActiveSubscription(); },
+
+  // listings_preview — veřejný náhled gated PŘEDPLATNÝM MAJITELE (sql/015).
+  // Aktivní inzerát je vidět KOMUKOLIV (i anonymovi), pokud má jeho majitel
+  // aktivní předplatné Inzerce. Systémové položky (owner_id null) jsou vždy vidět.
+  preview(){
+    return DB.listings.filter(l=> l.status==='active' &&
+      (l.owner_id===null || Core.ownerHasActiveSub(l.owner_id)));
+  },
+  // detail z base listings (sql/012): vlastník/admin bez omezení stavu;
+  // předplatitel jen 'active'; anonym → 0 řádků → CTA „Aktivovat Inzerci".
+  detail(id){
+    api('select listings (detail)', {id});
+    const l=DB.listings.find(x=>x.id===id);
+    if(!l) return {gated:false, listing:null};
+    const isOwner = !!DB.user && l.owner_id===DB.user;
+    const allowed = isOwner || DB.isAdmin || (l.status==='active' && Core.hasActiveSubscription());
+    if(!allowed){ log('  RLS: 0 řádků → CTA Aktivovat Inzerci','warn'); return {gated:true}; }
+    return {gated:false, listing:l};
+  },
+
+  // verify — cenový engine + quote + refund + risk + FOC rate limit (edge verify)
+  registriesForLevel(level){ return REGISTRIES.filter(r=>r.lvl[level]); },
+  quote(level){
+    const regs=Core.registriesForLevel(level);
+    return {registries:regs.map(r=>({registry:r.registry,label:r.label,price:r.price})),
+            total_credits:regs.reduce((s,r)=>s+r.price,0)};
+  },
+  focCheckAndCount(subject){
+    const ip='demo-ip'; const sh=subjectHash(subject); const day=new Date().toDateString();
+    DB.foc[day]=DB.foc[day]||{};
+    const tot=Object.entries(DB.foc[day]).filter(([k])=>k!=='').reduce((s,[,v])=>s+v,0);
+    const subj=DB.foc[day][sh]||0;
+    if(tot>=FOC_LIMITS.per_ip_day) return false;
+    if(subj>=FOC_LIMITS.per_subject_day) return false;
+    DB.foc[day][sh]=subj+1; return true;
+  },
+  verify(subject, level, confirm){
+    api('edge verify', {level, confirm:!!confirm});
+    if(level!=='foc_nologin' && !DB.user) return {error:'needsAuth', msg:'Pro tuto úroveň se přihlaste.'};
+    const q=Core.quote(level);
+    if(q.total_credits>0 && !confirm) return {quote:q};
+    if(q.total_credits===0){
+      if(!Core.focCheckAndCount(subject)) return {rateLimited:true, msg:'Překročen denní FOC limit ('+FOC_LIMITS.per_ip_day+'/den).'};
+    }
+    if(q.total_credits>0){
+      if(!Core.spendCredits(q.total_credits,'spend')) return {error:'insufficient', need:q.total_credits, quote:q};
+    }
+    const results={};
+    for(const r of Core.registriesForLevel(level)){
+      const res=runRegistryMock(r.registry, subject);
+      if(r.price>0 && (res.status==='error'||res.status==='unavailable')){
+        Core.refundCredits(r.price,'refund'); res.refunded=r.price;
+      }
+      res.price=r.price; results[r.registry]=res;
+    }
+    return {risk_score:riskScore(results), level, results, budget:q};
+  },
+
+  // platba → callback (idempotentní)
+  payCredits(product){
+    const p=PRODUCTS[product]; const pid='pay_'+(DB.seq++);
+    api('payment-create', {product, czk:p.czk}); log('  → Comgate (simulace)… PAID','ok');
+    api('payment-callback', {payment_id:pid, product});
+    Core.addCredits(p.credits,'purchase',pid);
+    lastPayment={type:'credits', product, pid};
+    return pid;
+  },
+  paySubscription(){
+    const pid='pay_'+(DB.seq++);
+    api('payment-create', {product:'sub_inzerce_monthly', czk:490}); log('  → Comgate (simulace)… PAID','ok');
+    api('payment-callback', {payment_id:pid, product:'sub_inzerce_monthly'});
+    if(DB.processedPayments.has('sub:'+pid)){ log('  activate_subscription: idempotentní, přeskočeno.','warn'); }
+    else { DB.processedPayments.add('sub:'+pid);
+      const base=Core.hasActiveSubscription()?DB.subscriptionEnd:Date.now();
+      DB.subscriptionEnd=base+30*86400000; log('  předplatné aktivní do '+new Date(DB.subscriptionEnd).toLocaleDateString('cs-CZ'),'ok'); }
+    lastPayment={type:'sub', pid};
+    return pid;
+  },
+  replayCallback(){
+    if(!lastPayment){return;}
+    log('↺ duplicitní PAID callback pro '+lastPayment.pid+' (test idempotence)','warn');
+    api('payment-callback', {payment_id:lastPayment.pid, replay:true});
+    if(lastPayment.type==='credits'){ Core.addCredits(PRODUCTS[lastPayment.product].credits,'purchase',lastPayment.pid); }
+    else { if(DB.processedPayments.has('sub:'+lastPayment.pid)) log('  activate_subscription: idempotentní, přeskočeno.','warn'); }
+  },
+  moderate(id, status){
+    api('edge admin-moderate-listing', {listing_id:id, status});
+    if(!DB.isAdmin){ log('  is_admin=false → 403 unauthorized','err'); return false; }
+    const l=DB.listings.find(x=>x.id===id); if(l){ l.status=status; log('  e-mail majiteli: inzerát '+(status==='active'?'schválen':'zamítnut')+' (fail-soft)','ok'); }
+    return true;
+  },
+};
+
+/* ════════════════════════ UI ════════════════════════ */
+function renderSession(){
+  document.getElementById('sUser').textContent = DB.user || '— nepřihlášen';
+  document.getElementById('sCredits').textContent = DB.credits;
+  const sub=document.getElementById('sSub'); const active=Core.hasActiveSubscription();
+  sub.textContent=active?('aktivní do '+new Date(DB.subscriptionEnd).toLocaleDateString('cs-CZ')):'neaktivní';
+  sub.className='pill '+(active?'on':'off');
+  const id=document.getElementById('sIdent'); const iv=Core.isIdentityVerified();
+  id.textContent=iv?('ověřeno '+year()):'neověřeno'; id.className='pill '+(iv?'on':'off');
+  const ad=document.getElementById('sAdmin'); ad.textContent=DB.isAdmin?'ano':'ne'; ad.className='pill '+(DB.isAdmin?'on':'off');
+  document.getElementById('btnReplay').disabled=!lastPayment;
+}
+function money(n){return n==null?'—':new Intl.NumberFormat('cs-CZ').format(n)+' Kč';}
+
+function renderMarket(){
+  const g=document.getElementById('marketGrid'); g.innerHTML='';
+  const items=Core.preview();
+  if(!items.length) g.innerHTML='<div class="muted">Žádné položky v náhledu.</div>';
+  items.forEach(l=>{
+    const d=document.createElement('div'); d.className='listing';
+    d.innerHTML=`<span class="badge">${l.type}</span><span class="t">${l.title}</span>
+      <div><span class="price">${money(l.price)}</span> ${l.original_value?`<span class="strike">${money(l.original_value)}</span> <span class="disc">−${l.discount_pct}%</span>`:''}</div>
+      <div class="muted">${l.location||''}</div>
+      <button class="ghost" data-detail="${l.id}">Plný detail →</button>`;
+    g.appendChild(d);
+  });
+  g.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>showDetail(b.dataset.detail));
+  document.getElementById('detail').innerHTML='';
+}
+function showDetail(id){
+  const r=Core.detail(id); const box=document.getElementById('detail');
+  if(r.gated){
+    box.innerHTML=`<div class="hint" style="margin-top:14px;border-color:var(--warn)">
+      🔒 Plný detail je dostupný jen předplatitelům služby <b>Inzerce</b>.
+      <div style="margin-top:8px"><button class="primary" id="ctaSub">Aktivovat Inzerci (490 Kč/měs.)</button></div></div>`;
+    document.getElementById('ctaSub').onclick=()=>{Core.paySubscription();renderAll();switchTab('market');};
+    return;
+  }
+  if(!r.listing){box.innerHTML='';return;}
+  const l=r.listing;
+  box.innerHTML=`<div class="card" style="margin-top:14px;background:var(--panel2)">
+    <h2>${l.title}</h2>
+    <div class="price">${money(l.price)} ${l.original_value?`<span class="strike">${money(l.original_value)}</span>`:''}</div>
+    <p>${l.description||''}</p>
+    <div class="stat"><span>Lokalita</span><b>${l.location||'—'}</b></div>
+    <div class="stat"><span>Kontakt (citlivé)</span><b>${l.contact_email||'—'}</b></div>
+    <div class="note ok-text">✓ Plný detail odemčen (předplatné/vlastník/admin).</div></div>`;
+}
+
+function renderPacks(){
+  const g=document.getElementById('packGrid'); g.innerHTML='';
+  Object.entries(PRODUCTS).forEach(([k,p])=>{
+    const d=document.createElement('div'); d.className='listing';
+    d.innerHTML=`<span class="badge">balíček</span><span class="t">${p.label}</span>
+      <div class="price">${p.credits} kr.</div><div class="muted">${p.czk} Kč</div>
+      <button class="primary" data-buy="${k}">Koupit</button>`;
+    g.appendChild(d);
+  });
+  g.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
+    if(!DB.user){alert('Nejdřív se přihlas (vlevo).');return;}
+    Core.payCredits(b.dataset.buy); renderAll();
+  });
+}
+function renderAdmin(){
+  const box=document.getElementById('adminList');
+  const pend=DB.listings.filter(l=>l.status==='pending');
+  if(!DB.isAdmin){box.innerHTML='<div class="hint" style="border-color:var(--bad)">Zapni roli admin (vlevo „Přepnout admina").</div>';return;}
+  if(!pend.length){box.innerHTML='<div class="muted">Žádné čekající inzeráty. Vytvoř nějaký v záložce „Vložit inzerát".</div>';return;}
+  box.innerHTML='';
+  pend.forEach(l=>{
+    const d=document.createElement('div');d.className='verdict';
+    d.innerHTML=`<span class="t" style="flex:1">${l.title} <span class="muted">(pending)</span></span>
+      <button class="primary" data-ok="${l.id}">Schválit</button>
+      <button class="ghost" data-no="${l.id}">Zamítnout</button>`;
+    box.appendChild(d);
+  });
+  box.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{Core.moderate(b.dataset.ok,'active');renderAll();});
+  box.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{Core.moderate(b.dataset.no,'rejected');renderAll();});
+}
+function renderAll(){renderSession();renderMarket();renderPacks();renderAdmin();}
+
+// tabs
+function switchTab(name){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('.tabpane').forEach(p=>p.hidden=p.dataset.pane!==name);
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+// verify UI
+function curSubject(){
+  const t=document.getElementById('vType').value;
+  if(t==='po') return {type:'po', ico:document.getElementById('vIco').value.replace(/\D/g,'')};
+  return {type:'fo', firstName:document.getElementById('vFirst').value, lastName:document.getElementById('vLast').value, birthDate:document.getElementById('vBirth').value};
+}
+document.getElementById('vType').onchange=e=>{
+  document.getElementById('vPO').hidden=e.target.value!=='po';
+  document.getElementById('vFO').hidden=e.target.value!=='fo';
+};
+let pendingVerify=null;
+document.getElementById('btnQuote').onclick=()=>{
+  const subject=curSubject(); const level=document.getElementById('vLevel').value;
+  const r=Core.verify(subject, level, false);
+  const box=document.getElementById('vResult');
+  if(r.error==='needsAuth'){box.innerHTML='<div class="hint" style="border-color:var(--warn)">'+r.msg+'</div>';return;}
+  if(r.quote){
+    box.innerHTML=`<div class="card" style="margin-top:12px;background:var(--panel2)">
+      <h3>Rozpočet kontroly (předběžný souhlas)</h3>
+      ${r.quote.registries.map(x=>`<div class="stat"><span>${x.label}</span><b>${x.price?x.price+' kr.':'zdarma'}</b></div>`).join('')}
+      <div class="stat"><span><b>Celkem</b></span><b>${r.quote.total_credits} kreditů</b></div>
+      <div class="note">Po potvrzení se strhne jednou; selhaný rejstřík se vrátí.</div></div>`;
+    pendingVerify={subject,level}; document.getElementById('btnRun').disabled=false;
+  } else { renderVerify(r); document.getElementById('btnRun').disabled=true; } // FOC proběhlo rovnou
+  renderSession();
+};
+document.getElementById('btnRun').onclick=()=>{
+  if(!pendingVerify)return;
+  const r=Core.verify(pendingVerify.subject, pendingVerify.level, true);
+  renderVerify(r); document.getElementById('btnRun').disabled=true; pendingVerify=null; renderSession();
+};
+function renderVerify(r){
+  const box=document.getElementById('vResult');
+  if(r.rateLimited){box.innerHTML='<div class="hint" style="border-color:var(--bad)">⛔ 429 — '+r.msg+'</div>';return;}
+  if(r.error==='insufficient'){box.innerHTML='<div class="hint" style="border-color:var(--bad)">Nedostatek kreditů (potřeba '+r.need+'). Dokup balíček v záložce Kredity.</div>';return;}
+  if(!r.results){return;}
+  const rows=Object.entries(r.results).map(([reg,v])=>{
+    const lbl=(REGISTRIES.find(x=>x.registry===reg)||{}).label||reg;
+    const txt = v.status==='clear'?'nenalezeno':v.status==='found'?'NÁLEZ':v.status==='error'?'selhání':'nekontrolováno';
+    return `<div class="verdict"><span class="gly ${glyphClass(v.status)}">${glyph(v.status)}</span>
+      <span style="flex:1"><b>${lbl}</b> — ${txt}${v.price?` <span class="muted">(${v.price} kr.${v.refunded?', vráceno':''})</span>`:''}<br><span class="muted">${v.detail||''}</span></span></div>`;
+  }).join('');
+  box.innerHTML=`<div class="card" style="margin-top:12px;background:var(--panel2)">
+    <div class="score">Rizikové skóre: <span class="meter"><i style="width:${r.risk_score}%"></i></span> ${r.risk_score}/100</div>
+    <div class="sep"></div>${rows}
+    <div class="note">Verdikt per rejstřík: ✓ nenalezeno · ⚠ nález · ✕ selhání (refund) · — nekontrolováno.</div></div>`;
+}
+
+// create
+document.getElementById('btnCreate').onclick=()=>{
+  const r=Core.createListing({title:document.getElementById('cTitle').value, type:document.getElementById('cType').value,
+    price:document.getElementById('cPrice').value, original_value:document.getElementById('cOrig').value, location:document.getElementById('cLoc').value});
+  const box=document.getElementById('cResult');
+  if(r.ok){ box.innerHTML='<div class="hint" style="border-color:var(--ok)">✓ Inzerát vytvořen ('+r.listing_id+'), status <b>pending</b>.'+
+      (r.charged?' Strženo 1 kr. + ověřena totožnost pro rok '+year()+'.':' (kredit nestržen — totožnost už ověřena).')+
+      ' Schval ho v Adminu.</div>'; }
+  else if(r.error==='no_credit'){ box.innerHTML='<div class="hint" style="border-color:var(--bad)">⛔ no_credit — první inzerát v roce vyžaduje 1 kredit. Dokup v záložce Kredity.</div>'; }
+  else { box.innerHTML='<div class="hint" style="border-color:var(--bad)">Chyba: '+r.error+'</div>'; }
+  renderAll();
+};
+
+// session buttons
+document.getElementById('btnLogin').onclick=()=>{DB.user='demo-user'; log('auth: přihlášen demo-user','ok'); renderAll();};
+document.getElementById('btnLogout').onclick=()=>{DB.user=null; log('auth: odhlášen','warn'); renderAll();};
+document.getElementById('btnAdmin').onclick=()=>{if(!DB.user){alert('Nejdřív přihlášení.');return;} DB.isAdmin=!DB.isAdmin; log('admin role: '+DB.isAdmin,'warn'); renderAll();};
+document.getElementById('btnReset').onclick=()=>{DB=freshDB(); lastPayment=null; document.getElementById('log').innerHTML=''; document.getElementById('vResult').innerHTML=''; document.getElementById('cResult').innerHTML=''; document.getElementById('btnRun').disabled=true; log('demo resetováno','warn'); renderAll();};
+document.getElementById('btnSub').onclick=()=>{if(!DB.user){alert('Nejdřív přihlášení.');return;} Core.paySubscription(); renderAll();};
+document.getElementById('btnReplay').onclick=()=>{Core.replayCallback(); renderAll();};
+
+// init
+DB=freshDB(); log('Debtora core demo připraveno. Tip: 1) Přihlásit → 2) Koupit kredity → 3) Vložit inzerát → 4) Admin schválit → 5) Ověření FULL.','ok');
+renderAll();
+</script>
+</body>
+</html>

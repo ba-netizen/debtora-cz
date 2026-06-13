@@ -21,6 +21,24 @@ Externí: Comgate · ISIR/ARES/DPH · CEE (Smart Collectors)
 Citlivé zápisy (kredity, lustrace, platby, tvorba inzerátu) běží server-side přes
 service-role / `SECURITY DEFINER`. Frontend jen čte přes RLS a iniciuje akce.
 
+## Lokální demo jádra (bez backendu)
+
+`demo/index.html` je samostatné interaktivní demo, které **věrně reprodukuje kontrakty jádra**
+v prohlížeči (žádný Supabase/Deno/Postgres není potřeba): kreditní ledger, `create_listing`
+(1. inzerát v roce strhne kredit + ověření totožnosti / `no_credit`), `verify` (cenový engine
+dle úrovně → quote → strh → per-rejstřík refund → rizikové skóre), idempotentní platby/callback,
+gating náhled (`listings_preview`) vs. detail, FOC rate limit, admin moderace.
+
+```bash
+python3 -m http.server 8787 --directory demo   # ze složky repa
+# → http://127.0.0.1:8787/
+```
+Doporučený průchod: **Přihlásit → Koupit kredity → Vložit inzerát → (Přepnout admina) Schválit
+→ Aktivovat Inzerci → Tržiště/detail → Ověření (FULL: rozpočet → potvrdit)**. Pravý panel ukazuje
+živý ledger a volání API. Věrnost dema vůči `sql/*` a edge funkcím byla ověřena auditem (6/6 kontraktů).
+
+> Demo je ilustrační mock — neukazuje reálné rejstříky ani DB; je to věrná simulace logiky jádra.
+
 ## Předpoklady
 
 - Supabase projekt (PostgreSQL 15+, Auth zapnutý).
