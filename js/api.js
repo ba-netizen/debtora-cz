@@ -79,10 +79,26 @@ const API = {
   // ═══════════ OVĚŘENÍ (edge `verify`) ═══════════
   // subject: { type:'po', ico } | { type:'fo', firstName, lastName, birthDate, rc? }
   // level: 'foc_nologin'|'foc_login'|'basic'|'medium'|'full'
-  async verify(subject, level = 'basic') {
-    const { data, error } = await sbClient.functions.invoke('verify', { body: { subject, level } });
+  //
+  // Dvoufázový tok pro placené úrovně:
+  //   1) const { quote, request_id } = await API.verify(subj, 'full');  // bez confirm
+  //      → quote = { registries:[{registry,price}], total_credits } pro souhlas
+  //   2) await API.verify(subj, 'full', { requestId: request_id, confirm: true });
+  //      → { mode, level, risk_score, results }
+  // FOC úrovně (cena 0) i krok 1 rovnou vrátí results (žádný quote).
+  // request_id zajišťuje idempotenci (opakování nestrhne kredit 2×).
+  newRequestId() {
+    return (crypto.randomUUID && crypto.randomUUID()) ||
+      ('rid-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  },
+  async verify(subject, level = 'basic', opts = {}) {
+    const request_id = opts.requestId || this.newRequestId();
+    const confirm = opts.confirm === true;
+    const { data, error } = await sbClient.functions.invoke('verify', {
+      body: { subject, level, request_id, confirm },
+    });
     if (error) throw new Error(error.message || 'Ověření se nezdařilo.');
-    return data; // { mode, level, risk_score, results }
+    return { ...data, request_id }; // { quote?, results?, risk_score?, mode, level }
   },
 
   async getVerificationHistory() {
@@ -142,6 +158,14 @@ const API = {
     return data === true;
   },
 
+  // ═══════════ GDPR — smazání účtu (edge `delete-account`) ═══════════
+  // Anonymizuje osobní údaje, zachová účetní audit, smaže auth.users.
+  async deleteAccount() {
+    const { data, error } = await sbClient.functions.invoke('delete-account', { body: {} });
+    if (error) throw new Error(error.message || 'Smazání účtu se nezdařilo.');
+    return data; // { ok, anonymized, authDeleted }
+  },
+
   // ═══════════ CMS (čte cms.js) ═══════════
   async getContent(blockKey) {
     if (blockKey) {
@@ -193,9 +217,11 @@ const AdminAPI = {
     return data || [];
   },
 
-  // Zápis přes admin RPC
+  // Zápis přes edge funkci (změní stav + pošle majiteli e-mail).
   async setListingStatus(id, status) {
-    const { data, error } = await sbClient.rpc('admin_set_listing_status', { p_listing: id, p_status: status });
+    const { data, error } = await sbClient.functions.invoke('admin-moderate-listing', {
+      body: { listing_id: id, status },
+    });
     if (error) throw new Error(error.message);
     return data;
   },
