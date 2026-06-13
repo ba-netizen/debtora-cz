@@ -14,8 +14,8 @@
 </div>
 <nav>
   <a href="index.html" class="logo-wrap">
-    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
-    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span><span class="logo-sub">Distressed Asset Marketplace</span></div>
   </a>
   <div class="nav-links">
     <div class="nav-dropdown">
@@ -154,7 +154,7 @@
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span></div></a>
       <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
     </div>
     <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
@@ -177,98 +177,87 @@
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
   if (!id) { showError(); return; }
+  const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC cenný papír' };
 
   try {
-    const { data, error } = await sbClient.rpc('get_listing_detail', { listing_uuid: id });
-    if (error || !data?.success) { showError(); return; }
+    // 1) Marketingový NÁHLED (vždy čitelný) — listings_preview
+    const { data: prev } = await sbClient.from('listings_preview').select('*').eq('id', id).maybeSingle();
+    if (!prev) { showError(); return; }
 
-    const l = data.listing;
     document.getElementById('detailLoading').style.display = 'none';
     document.getElementById('detailContent').style.display = 'block';
 
-    // Hero
-    const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC cenný papír' };
-    document.getElementById('detailTag').textContent = typeNames[l.type] || l.type;
-    document.getElementById('detailTitle').textContent = l.title;
-    document.getElementById('detailLocation').textContent = l.location ? '📍 ' + l.location : '';
-    document.title = l.title + ' — DEBTORA CZ';
+    document.getElementById('detailTag').textContent = typeNames[prev.type] || prev.type;
+    document.getElementById('detailTitle').textContent = prev.title;
+    document.getElementById('detailLocation').textContent = prev.location ? '📍 ' + prev.location : '';
+    document.title = prev.title + ' — DEBTORA CZ';
+    document.getElementById('detailType').textContent = typeNames[prev.type] || prev.type;
+    document.getElementById('detailType').className = 'badge badge-' + prev.type;
+    document.getElementById('detailCategory').textContent = prev.category || '—';
+    document.getElementById('detailStatus').textContent = prev.status;
+    document.getElementById('detailStatus').className = 'badge badge-' + prev.status;
+    document.getElementById('detailDate').textContent = new Date(prev.created_at).toLocaleDateString('cs-CZ');
+    document.getElementById('detailViews').textContent = (prev.views || 0) + '×';
+    document.getElementById('detailPrice').textContent = prev.price ? Number(prev.price).toLocaleString('cs-CZ') + ' Kč' : 'Na vyžádání';
+    if (prev.original_value) document.getElementById('detailOriginal').textContent = 'Nominální hodnota: ' + Number(prev.original_value).toLocaleString('cs-CZ') + ' Kč';
+    if (prev.discount_pct) document.getElementById('detailDiscount').textContent = 'Sleva: -' + prev.discount_pct + ' %';
+    document.getElementById('sideLocation').textContent = prev.location || '—';
 
-    // Main info
+    // 2) Plný DETAIL — gated předplatným Inzerce / vlastník / admin
+    const det = await API.getListingDetail(id);
+    const loggedIn = await Auth.isLoggedIn();
+
+    if (det.gated) {
+      document.getElementById('detailDesc').innerHTML = '<span style="color:var(--text-muted)">🔒 Popis, dokumentace a kontakt jsou dostupné s aktivním předplatným služby <strong>Inzerce</strong>.</span>';
+      const loginUrl = 'prihlaseni.html?redirect=' + encodeURIComponent(window.location.href);
+      if (loggedIn) {
+        const lock = document.getElementById('lockedSection');
+        lock.querySelector('h3').textContent = 'Plný detail jen pro předplatitele Inzerce';
+        lock.querySelector('p').textContent = 'Aktivujte předplatné služby Inzerce a získejte přístup k popisu, dokumentaci a kontaktům všech inzerátů.';
+        lock.querySelector('.locked-actions').innerHTML = '<a href="cenik.html" class="btn-primary">Aktivovat Inzerci →</a><a href="ucet.html" class="btn-secondary">Můj účet</a>';
+        document.getElementById('sidebarCta').innerHTML = '<a href="cenik.html" class="btn-primary" style="width:100%;text-align:center;display:block">Aktivovat Inzerci pro kontakt</a>';
+      } else {
+        document.getElementById('lockLoginBtn').href = loginUrl;
+        document.getElementById('sideLoginBtn').href = loginUrl;
+      }
+      return;
+    }
+
+    // ODEMČENO — máme plný detail (vlastník/admin/předplatitel)
+    const l = det.listing;
     document.getElementById('detailDesc').textContent = l.description || 'Bez popisu.';
-    document.getElementById('detailType').textContent = typeNames[l.type] || l.type;
-    document.getElementById('detailType').className = 'badge badge-' + l.type;
-    document.getElementById('detailCategory').textContent = l.category || '—';
-    document.getElementById('detailStatus').textContent = l.status;
-    document.getElementById('detailStatus').className = 'badge badge-' + l.status;
-    document.getElementById('detailDate').textContent = new Date(l.created_at).toLocaleDateString('cs-CZ');
-    document.getElementById('detailViews').textContent = (l.views || 0) + '×';
-
-    // Sidebar price
-    document.getElementById('detailPrice').textContent = l.price ? Number(l.price).toLocaleString('cs-CZ') + ' Kč' : 'Na vyžádání';
-    if (l.original_value) {
-      document.getElementById('detailOriginal').textContent = 'Nominální hodnota: ' + Number(l.original_value).toLocaleString('cs-CZ') + ' Kč';
+    document.getElementById('lockedSection').style.display = 'none';
+    document.getElementById('unlockedSection').style.display = 'block';
+    document.getElementById('sidebarCta').style.display = 'none';
+    document.getElementById('sidebarCtaAuth').style.display = 'block';
+    if (l.contact_email) {
+      document.getElementById('contactCard').style.display = 'block';
+      document.getElementById('sideContact').innerHTML = '<a href="mailto:' + l.contact_email + '">' + l.contact_email + '</a>';
     }
-    if (l.discount_pct) {
-      document.getElementById('detailDiscount').textContent = 'Sleva: -' + l.discount_pct + ' %';
-    }
-    document.getElementById('sideLocation').textContent = l.location || '—';
 
-    // Load files (images + documents)
+    // Soubory (privátní bucket → signed URL)
     try {
-      const { data: files } = await sbClient
-        .from('listing_files')
-        .select('*')
-        .eq('listing_id', id)
-        .order('sort_order');
-
-      if (files && files.length > 0) {
-        const images = files.filter(f => f.file_type === 'image');
-        const docs = files.filter(f => f.file_type !== 'image');
-
-        if (images.length > 0) {
-          document.getElementById('galleryCard').style.display = 'block';
-          document.getElementById('detailGallery').innerHTML = images.map(img =>
-            `<a href="${img.file_url}" target="_blank" class="gallery-item">
-              <img src="${img.file_url}" alt="${img.file_name}" loading="lazy">
-            </a>`
-          ).join('');
-        }
-
-        if (docs.length > 0) {
-          document.getElementById('docsListCard').style.display = 'block';
-          document.getElementById('detailDocsList').innerHTML = docs.map(doc => {
-            const sizeMB = (doc.file_size / 1024 / 1024).toFixed(1);
-            return `<a href="${doc.file_url}" target="_blank" class="doc-item">
-              <span class="doc-icon">📄</span>
-              <span class="doc-name">${doc.file_name}</span>
-              <span class="doc-size">${sizeMB} MB</span>
-            </a>`;
-          }).join('');
-        }
+      const files = await API.getListingFiles(id);
+      const sign = async (path) => { const { data } = await sbClient.storage.from('listing-files').createSignedUrl(path, 3600); return data?.signedUrl || '#'; };
+      const images = files.filter(f => f.file_type === 'image');
+      const docs = files.filter(f => f.file_type !== 'image');
+      if (images.length) {
+        document.getElementById('galleryCard').style.display = 'block';
+        document.getElementById('detailGallery').innerHTML = (await Promise.all(images.map(async img => {
+          const url = await sign(img.file_url);
+          return `<a href="${url}" target="_blank" class="gallery-item"><img src="${url}" alt="${img.file_name}" loading="lazy"></a>`;
+        }))).join('');
+      }
+      if (docs.length) {
+        document.getElementById('docsListCard').style.display = 'block';
+        document.getElementById('detailDocsList').innerHTML = (await Promise.all(docs.map(async doc => {
+          const url = await sign(doc.file_url); const sizeMB = (doc.file_size / 1024 / 1024).toFixed(1);
+          return `<a href="${url}" target="_blank" class="doc-item"><span class="doc-icon">📄</span><span class="doc-name">${doc.file_name}</span><span class="doc-size">${sizeMB} MB</span></a>`;
+        }))).join('');
       }
     } catch (e) { console.error('Files load error:', e); }
 
-    // Auth-dependent sections
-    if (Auth.isLoggedIn()) {
-      document.getElementById('lockedSection').style.display = 'none';
-      document.getElementById('unlockedSection').style.display = 'block';
-      document.getElementById('sidebarCta').style.display = 'none';
-      document.getElementById('sidebarCtaAuth').style.display = 'block';
-      if (l.contact_email) {
-        document.getElementById('contactCard').style.display = 'block';
-        document.getElementById('sideContact').innerHTML = '<a href="mailto:' + l.contact_email + '">' + l.contact_email + '</a>';
-      }
-    } else {
-      // Save redirect URL for after login
-      const loginUrl = 'prihlaseni.html?redirect=' + encodeURIComponent(window.location.href);
-      document.getElementById('lockLoginBtn').href = loginUrl;
-      document.getElementById('sideLoginBtn').href = loginUrl;
-    }
-
-  } catch (e) {
-    console.error(e);
-    showError();
-  }
+  } catch (e) { console.error(e); showError(); }
 
   function showError() {
     document.getElementById('detailLoading').style.display = 'none';
@@ -276,22 +265,23 @@
   }
 })();
 
-// Inquiry form
+// Poptávka (jen přihlášený; insert do messages přes RLS, vázáno na listing_id)
 document.getElementById('inquiryForm')?.addEventListener('submit', async function(e) {
   e.preventDefault();
-  const user = Auth.getUser();
+  const user = await Auth.getUser();
   if (!user) { showToast('Nejdříve se přihlaste', 'error'); return; }
   const btn = this.querySelector('button');
   btn.textContent = 'Odesílání...'; btn.disabled = true;
   try {
     const params = new URLSearchParams(window.location.search);
     await API.sendMessage({
-      name: user.name || user.email,
+      listing_id: params.get('id'),
+      name: user.user_metadata?.name || user.email,
       email: user.email,
-      type: 'inquiry',
-      message: '[Dotaz k inzerátu #' + params.get('id')?.slice(0,8) + '] ' + this.querySelector('textarea').value
+      type: 'buy',
+      message: this.querySelector('textarea').value
     });
-    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Dotaz odeslán!</h3><p>Prodávající obdrží váš dotaz a odpověď přijde na ' + user.email + '</p></div>';
+    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Dotaz odeslán!</h3><p>Prodávající obdrží váš dotaz; odpověď přijde na ' + user.email + '</p></div>';
     showToast('Dotaz odeslán!', 'success');
   } catch (err) {
     showToast(err.message, 'error');
@@ -299,9 +289,7 @@ document.getElementById('inquiryForm')?.addEventListener('submit', async functio
   }
 });
 
-function saveListing() {
-  showToast('Nabídka uložena do oblíbených ⭐', 'success');
-}
+function saveListing() { showToast('Nabídka uložena do oblíbených ⭐', 'success'); }
 </script>
 </body>
 </html>

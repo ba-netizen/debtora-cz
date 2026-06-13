@@ -14,8 +14,8 @@
 </div>
 <nav>
   <a href="index.html" class="logo-wrap">
-    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
-    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span><span class="logo-sub">Distressed Asset Marketplace</span></div>
   </a>
   <div class="nav-links">
     <div class="nav-dropdown">
@@ -81,7 +81,7 @@
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span></div></a>
       <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
     </div>
     <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
@@ -147,47 +147,58 @@ function renderPreview() {
 
 function removeFile(i) { selectedFiles.splice(i, 1); renderPreview(); }
 
-// ── Form Submit with File Upload ──
+// ── Form Submit (RPC create_listing + upload do privátního bucketu) ──
 document.getElementById('listingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const btn = this.querySelector('button[type="submit"]');
+
+  // Tvorba vyžaduje přihlášení (create_listing běží na auth.uid()).
+  if (!(await Auth.isLoggedIn())) {
+    showToast('Pro vložení inzerátu se přihlaste.', 'error');
+    sessionStorage.setItem('debtora_redirect', window.location.href);
+    setTimeout(() => window.location.href = 'prihlaseni.html', 1200);
+    return;
+  }
   setLoading(btn, true);
   try {
     const fd = new FormData(this);
-    const data = { title: fd.get('title'), type: fd.get('type'), category: fd.get('category'), price: Number(fd.get('price')), original_value: Number(fd.get('original_value')) || null, location: fd.get('location'), contact_email: fd.get('contact_email'), description: fd.get('description') };
+    const data = { title: fd.get('title'), type: fd.get('type'), category: fd.get('category'),
+      price: Number(fd.get('price')) || null, original_value: Number(fd.get('original_value')) || null,
+      location: fd.get('location'), contact_email: fd.get('contact_email'), description: fd.get('description') };
     if (data.original_value && data.price) data.discount_pct = Math.round((1 - data.price / data.original_value) * 1000) / 10;
 
-    // Create listing
-    const listing = await API.createListing(data);
-    const listingId = listing?.id || listing?.[0]?.id;
+    // JEDINÁ cesta tvorby — RPC create_listing → { ok, listing_id, charged, error }
+    const res = await API.createListing(data);
+    if (!res || res.ok !== true) {
+      if (res?.error === 'no_credit') {
+        showToast('První inzerát v roce vyžaduje 1 kredit (ověření totožnosti). Doplňte kredit.', 'error');
+        setLoading(btn, false);
+        setTimeout(() => window.location.href = 'cenik.html', 1600);
+        return;
+      }
+      throw new Error(res?.error === 'not_authenticated' ? 'Přihlaste se prosím znovu.'
+        : ('Nepodařilo se vložit inzerát' + (res?.error ? ' (' + res.error + ')' : '') + '.'));
+    }
+    const listingId = res.listing_id;
 
-    // Upload files
+    // Upload do PRIVÁTNÍHO bucketu listing-files; file_url = path (signed URL až v detailu)
     if (listingId && selectedFiles.length > 0) {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         const ext = file.name.split('.').pop().toLowerCase();
         const path = `${listingId}/${Date.now()}-${i}.${ext}`;
-
-        const { data: uploadData, error: uploadError } = await sbClient.storage
-          .from('listing-files')
-          .upload(path, file, { cacheControl: '3600', upsert: false });
-
+        const { error: uploadError } = await sbClient.storage.from('listing-files').upload(path, file, { cacheControl: '3600', upsert: false });
         if (uploadError) { console.error('Upload error:', uploadError); continue; }
-
-        const { data: urlData } = sbClient.storage.from('listing-files').getPublicUrl(path);
-
         await sbClient.from('listing_files').insert({
-          listing_id: listingId,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
+          listing_id: listingId, file_name: file.name, file_url: path,
           file_type: file.type.startsWith('image/') ? 'image' : 'document',
-          file_size: file.size,
-          sort_order: i
+          file_size: file.size, sort_order: i
         });
       }
     }
 
-    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Inzerát vložen!</h3><p>Váš inzerát včetně souborů bude po schválení zveřejněn na tržišti (do 24 hodin).</p><a href="trziste.html" class="btn-primary" style="margin-top:1.5rem;">Prohlédnout tržiště →</a></div>';
+    const charged = res.charged ? ' Z účtu byl stržen 1 kredit a ověřena vaše totožnost pro letošní rok.' : '';
+    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Inzerát vložen!</h3><p>Čeká na schválení adminem a poté se zobrazí na tržišti (vyžaduje aktivní předplatné Inzerce).' + charged + '</p><a href="ucet.html" class="btn-primary" style="margin-top:1.5rem;">Můj účet →</a></div>';
     showToast('Inzerát vložen!', 'success');
   } catch (err) { showToast(err.message, 'error'); setLoading(btn, false); }
 });
