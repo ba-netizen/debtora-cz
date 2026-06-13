@@ -29,3 +29,4 @@ debtora-cz-latest.zip
 
 # iOS app — separate workstream (out of scope for core)
 ios/
+.vercel
