@@ -20,11 +20,12 @@ Tento soubor sleduje, co zbývá dotáhnout před plným ostrým provozem.
       `cd /Users/jirihochman/debtora-cz && npx vercel --prod` (commit 62edbe1 zatím
       nasazený není — poslední `--prod` byl před tímto napojením).
 
-- [ ] **Napojit zbývající stránky na nové API** (pořád používají legacy volání):
-      `admin.html` (moderace → edge `admin-moderate-listing`, admin login přes Supabase
-      Auth + `admin_users`), `prihlaseni.html` / `registrace.html` (Supabase Auth
-      přes `Auth.login`/`Auth.register`), `ucet.html` (profil, kredity, předplatné,
-      historie ověření, smazání účtu přes `API.deleteAccount`).
+- [x] **Stránky napojeny na nové API:** `trziste`, `inzerat`, `vlozit-inzerat`,
+      `prihlaseni`, `registrace`, `ucet`, `admin` (commity 62edbe1, 472fc8b, cdb1506).
+      Admin běží na Supabase Auth + `is_admin`, moderace přes edge `admin-moderate-listing`,
+      messages admin policy v migraci 018 (aplikováno na live DB).
+      Zbývá doladit při finalizaci: `ucet.html` zatím neukazuje kredity/předplatné/historii
+      ověření ani tlačítko smazání účtu (`API.deleteAccount`) — jen profil + moje inzeráty.
 
 - [ ] **Založit admin účet:** zaregistrovat reálný admin e-mail přes Auth, pak
       `insert into admin_users (user_id, role) values ('<auth.uid>', 'admin');`.
