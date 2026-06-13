@@ -72,6 +72,7 @@
             <input id="vFirst" placeholder="Jméno" />
             <input id="vLast" placeholder="Příjmení" />
             <input id="vBirth" type="date" />
+            <input id="vRc" inputmode="numeric" placeholder="Rodné číslo (nepovinné — přesnější ISIR)" />
             <button class="btn-primary" onclick="verifyHome()">Ověřit zdarma →</button>
           </div>
           <div id="vResult" class="verifier-result"></div>
@@ -231,8 +232,10 @@ async function verifyHome() {
     const firstName = document.getElementById('vFirst').value.trim();
     const lastName = document.getElementById('vLast').value.trim();
     const birthDate = document.getElementById('vBirth').value;
+    const rc = (document.getElementById('vRc').value || '').trim();
     if (!firstName || !lastName || !birthDate) { box.innerHTML = '<span class="verr">Vyplňte jméno, příjmení a datum narození.</span>'; return; }
     subject = { type:'fo', firstName, lastName, birthDate };
+    if (rc) subject.rc = rc; // nepovinné — zpřesní ISIR na konkrétní osobu
     displayName = firstName + ' ' + lastName;
   }
   const btn = document.getElementById('vBtn');
