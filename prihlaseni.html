@@ -14,8 +14,8 @@
 </div>
 <nav>
   <a href="index.html" class="logo-wrap">
-    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
-    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span><span class="logo-sub">Distressed Asset Marketplace</span></div>
   </a>
   <div class="nav-links">
     <div class="nav-dropdown">
@@ -58,7 +58,7 @@
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span></div></a>
       <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
     </div>
     <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
@@ -92,8 +92,8 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     btn.textContent = 'Přihlásit se →'; btn.disabled = false;
   }
 });
-// If already logged in, redirect
-if (Auth.isLoggedIn()) window.location.href = 'ucet.html';
+// Pokud už přihlášen, přesměruj na účet (isLoggedIn je async → nutné await)
+(async () => { if (await Auth.isLoggedIn()) window.location.href = 'ucet.html'; })();
 </script>
 </body>
 </html>

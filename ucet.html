@@ -14,8 +14,8 @@
 </div>
 <nav>
   <a href="index.html" class="logo-wrap">
-    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg>
-    <div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span><span class="logo-sub">Distressed Asset Marketplace</span></div>
   </a>
   <div class="nav-links">
     <div class="nav-dropdown">
@@ -98,7 +98,7 @@
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a6872f"/><stop offset="100%" style="stop-color:#6b5520"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M60 18 L102 60 L60 102 L18 60 Z" fill="none" stroke="url(#lg)" stroke-width="3" opacity="0.3"/><text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="url(#lg)">D</text><rect x="20" y="104" width="80" height="3" rx="1.5" fill="url(#lg)" opacity="0.6"/></svg><div class="logo-text"><span class="logo-name">DEBTOR<b>A</b> CZ</span></div></a>
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span></div></a>
       <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
     </div>
     <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
@@ -117,26 +117,47 @@
 <script src="js/cms.js"></script>
 <script src="js/main.js"></script>
 <script>
-// Require login
-if (!Auth.requireLogin()) { /* redirects */ }
+(async function() {
+  // Vyžaduje přihlášení (async — requireLogin sám přesměruje a vrátí false)
+  if (!(await Auth.requireLogin())) return;
 
-// Populate profile
-const user = Auth.getUser();
-if (user) {
-  document.getElementById('userName').textContent = user.name || user.email;
+  // Profil z public.users + auth uživatel jako fallback
+  const p = (await Auth.getProfile()) || {};
+  const authUser = await Auth.getUser();
+  const email = p.email || authUser?.email || '';
+  const name = p.name || authUser?.user_metadata?.name || email;
   const kycMap = { verified: '✅ Ověřeno', pending: '⏳ Čeká na ověření', unverified: '❌ Neověřeno', rejected: '❌ Zamítnuto' };
   const typeMap = { buyer: 'Kupující', seller: 'Prodávající', both: 'Kupující i prodávající', broker: 'Broker' };
-  document.getElementById('userStatus').textContent = typeMap[user.account_type] || user.account_type;
-  document.getElementById('pName').textContent = user.name || '—';
-  document.getElementById('pEmail').textContent = user.email;
-  document.getElementById('pPhone').textContent = user.phone || '—';
-  document.getElementById('pCompany').textContent = user.company || '—';
-  document.getElementById('pIco').textContent = user.ico || '—';
-  document.getElementById('pType').textContent = typeMap[user.account_type] || user.account_type;
-  document.getElementById('pKyc').innerHTML = kycMap[user.kyc_status] || user.kyc_status;
-  document.getElementById('pDate').textContent = new Date(user.created_at).toLocaleDateString('cs-CZ');
-  if (user.kyc_status !== 'verified') document.getElementById('kycNotice').style.display = 'block';
-}
+  document.getElementById('userName').textContent = name;
+  document.getElementById('userStatus').textContent = typeMap[p.account_type] || p.account_type || '—';
+  document.getElementById('pName').textContent = name || '—';
+  document.getElementById('pEmail').textContent = email || '—';
+  document.getElementById('pPhone').textContent = p.phone || '—';
+  document.getElementById('pCompany').textContent = p.company || '—';
+  document.getElementById('pIco').textContent = p.ico || '—';
+  document.getElementById('pType').textContent = typeMap[p.account_type] || p.account_type || '—';
+  document.getElementById('pKyc').innerHTML = kycMap[p.kyc_status] || p.kyc_status || '—';
+  document.getElementById('pDate').textContent = p.created_at ? new Date(p.created_at).toLocaleDateString('cs-CZ') : '—';
+  if (p.kyc_status && p.kyc_status !== 'verified') document.getElementById('kycNotice').style.display = 'block';
+
+  // Moje inzeráty (vlastník vidí svoje přes RLS, i nepublikované)
+  try {
+    const { data: mine } = await sbClient.from('listings')
+      .select('id,title,type,status,price,created_at').order('created_at', { ascending: false });
+    if (mine && mine.length) {
+      const typeNames = { debt: 'Pohledávka', property: 'Nemovitost', otc: 'OTC' };
+      document.getElementById('myListingsGrid').innerHTML = mine.map(l =>
+        `<a href="inzerat.html?id=${l.id}" class="listing-card">
+          <div class="listing-badge badge-${l.type}">${typeNames[l.type] || l.type}</div>
+          <h3>${l.title}</h3>
+          <div class="listing-meta">
+            <span class="listing-price">${l.price ? Number(l.price).toLocaleString('cs-CZ') + ' Kč' : '—'}</span>
+            <span class="badge badge-${l.status}">${l.status}</span>
+          </div>
+        </a>`).join('');
+    }
+  } catch (e) { console.error('My listings error:', e); }
+})();
 
 function showAccTab(name, btn) {
   document.querySelectorAll('.acc-panel').forEach(p => p.style.display = 'none');
