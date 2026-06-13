@@ -55,6 +55,9 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
 .badge{font-size:.7rem;padding:.25rem .6rem;letter-spacing:.04em;text-transform:uppercase;font-weight:500;display:inline-block}
 .badge-active{background:#e8f5e9;color:var(--success)}
 .badge-pending{background:#fef3e2;color:var(--gold)}
+.badge-draft{background:#f5f5f5;color:var(--text-muted)}
+.badge-rejected{background:#ffeaea;color:var(--danger)}
+.badge-sold{background:#e3f2fd;color:var(--info)}
 .badge-hidden{background:#f5f5f5;color:var(--text-muted)}
 .badge-debt{background:#fef3e2;color:var(--gold)}
 .badge-property{background:#e8f5e9;color:var(--success)}
@@ -114,8 +117,9 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
   <div class="auth-box">
     <h1>DEBTORA <span>CZ</span></h1>
     <p>Administrace platformy</p>
-    <div class="auth-error" id="authError">Nesprávné heslo</div>
-    <input type="password" id="pwInput" placeholder="Zadejte heslo..." autofocus>
+    <div class="auth-error" id="authError">Přihlášení selhalo</div>
+    <input type="email" id="emailInput" placeholder="Admin e-mail…" autofocus autocomplete="username">
+    <input type="password" id="pwInput" placeholder="Heslo…" autocomplete="current-password">
     <button onclick="doLogin()">Přihlásit se</button>
   </div>
 </div>
@@ -137,6 +141,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
       <a onclick="showSection('users')">👤 Uživatelé</a>
       <a onclick="showSection('messages')">✉️ Zprávy</a>
       <a onclick="showSection('content')">📝 Obsah stránek</a>
+      <a onclick="showSection('registries')">🗂 Rejstříky</a>
       <a onclick="showSection('settings')">⚙️ Nastavení</a>
     </nav>
 
@@ -160,7 +165,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
 
       <!-- ── LISTINGS ── -->
       <div id="sec-listings" style="display:none">
-        <div class="section-title">Správa inzerátů <button class="btn-gold" onclick="showSection('listings')">↻ Obnovit</button></div>
+        <div class="section-title">Správa inzerátů <button class="btn-gold" onclick="loadListings()">↻ Obnovit</button></div>
         <table class="admin-table" id="listingsTable">
           <thead><tr><th>Název</th><th>Typ</th><th>Status</th><th>Cena</th><th>Lokace</th><th>Akce</th></tr></thead>
           <tbody></tbody>
@@ -193,9 +198,28 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
         <button class="btn-gold" onclick="saveContent()" style="margin-top:1rem">Uložit změny</button>
       </div>
 
+      <!-- ── REGISTRIES ── -->
+      <div id="sec-registries" style="display:none">
+        <div class="section-title">Rejstříky prověrek</div>
+        <p style="color:#888;font-size:.9rem;margin-bottom:1rem">
+          Nastavte, které rejstříky se při prověrce kontrolují, a cenu v kreditech
+          (<strong>0&nbsp;= zdarma</strong>). Změna platí okamžitě pro web i mobilní aplikaci.
+          Vypnutý rejstřík se v prověrce zobrazí jako „kontrola dočasně vypnuta".
+        </p>
+        <table class="admin-table" id="registriesTable">
+          <thead><tr><th>Rejstřík</th><th>Aktivní</th><th>Cena (kredity)</th><th></th></tr></thead>
+          <tbody><tr><td colspan="4">Načítám…</td></tr></tbody>
+        </table>
+        <p style="color:#888;font-size:.8rem;margin-top:.8rem">
+          Pozn.: nákladová cena CEE je 17,50&nbsp;Kč/dotaz (Smart Collectors) — cenu v kreditech
+          nastavujte tak, aby ji prodejní cena kreditu pokryla.
+        </p>
+      </div>
+
       <!-- ── SETTINGS ── -->
       <div id="sec-settings" style="display:none">
         <div class="section-title">Nastavení webu</div>
+        <p style="color:#888;font-size:.85rem;margin-bottom:1rem">Každé nastavení je JSON — uprav hodnoty a ulož.</p>
         <div id="settingsFields"></div>
         <button class="btn-gold" onclick="saveSettings()" style="margin-top:1rem">Uložit nastavení</button>
       </div>
@@ -212,19 +236,6 @@ const SURL = window.DEBTORA_CONFIG?.SUPABASE_URL || '';
 const SKEY = window.DEBTORA_CONFIG?.SUPABASE_ANON_KEY || '';
 const sb = window.supabase.createClient(SURL, SKEY);
 
-let adminServiceKey = null; // set after login for admin operations
-
-function adminClient() {
-  if (adminServiceKey) return window.supabase.createClient(SURL, adminServiceKey);
-  return sb;
-}
-
-// ── SHA-256 ──
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
 // ── TOAST ──
 function toast(msg, type='success') {
   const el = document.createElement('div');
@@ -235,39 +246,34 @@ function toast(msg, type='success') {
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
 }
 
-// ── AUTH ──
-async function doLogin() {
-  const pw = document.getElementById('pwInput').value;
-  if (!pw) return;
-  try {
-    const hash = await sha256(pw);
-    const { data, error } = await sb.rpc('admin_login', { pw_hash: hash });
-    if (error || !data || !data.success) {
-      document.getElementById('authError').style.display = 'block';
-      return;
-    }
-    sessionStorage.setItem('admin_auth', 'true');
-    document.getElementById('authGate').style.display = 'none';
-    document.getElementById('adminApp').style.display = 'block';
-    loadDashboard();
-  } catch (e) {
-    document.getElementById('authError').style.display = 'block';
-  }
-}
-
-function doLogout() {
-  sessionStorage.removeItem('admin_auth');
-  location.reload();
-}
-
-document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-// Auto-login if session exists
-if (sessionStorage.getItem('admin_auth')) {
+// ── AUTH (Supabase Auth + is_admin) — žádný service-role klíč ve frontendu ──
+function enterApp() {
   document.getElementById('authGate').style.display = 'none';
   document.getElementById('adminApp').style.display = 'block';
-  setTimeout(loadDashboard, 100);
+  loadDashboard();
 }
+async function isAdminSession() {
+  const { data: sess } = await sb.auth.getSession();
+  if (!sess.session) return false;
+  const { data: ok } = await sb.rpc('is_admin');
+  return ok === true;
+}
+async function doLogin() {
+  const email = document.getElementById('emailInput').value.trim();
+  const pw = document.getElementById('pwInput').value;
+  const err = document.getElementById('authError');
+  err.style.display = 'none';
+  if (!email || !pw) return;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { err.textContent = 'Nesprávný e-mail nebo heslo.'; err.style.display = 'block'; return; }
+  if (!(await isAdminSession())) { await sb.auth.signOut(); err.textContent = 'Účet nemá oprávnění administrátora.'; err.style.display = 'block'; return; }
+  enterApp();
+}
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Auto-vstup, pokud už je přihlášený admin
+(async () => { if (await isAdminSession()) enterApp(); })();
 
 // ── NAVIGATION ──
 function showSection(name) {
@@ -275,207 +281,167 @@ function showSection(name) {
   document.getElementById('sec-' + name).style.display = 'block';
   document.querySelectorAll('.admin-sidebar a').forEach(a => a.classList.remove('active'));
   event?.target?.classList.add('active');
-
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'listings') loadListings();
-  if (name === 'users') loadUsers();
-  if (name === 'messages') loadMessages();
-  if (name === 'content') loadContent();
-  if (name === 'settings') loadSettings();
+  ({ dashboard: loadDashboard, listings: loadListings, users: loadUsers, messages: loadMessages,
+     content: loadContent, registries: loadRegistries, settings: loadSettings }[name] || (() => {}))();
 }
 
-// ── DASHBOARD ──
+// ── DASHBOARD ── (statistiky počítáme přes count, RLS vidí adminovi vše)
+async function count(table, filter) {
+  let q = sb.from(table).select('id', { count: 'exact', head: true });
+  if (filter) q = filter(q);
+  const { count } = await q;
+  return count ?? 0;
+}
 async function loadDashboard() {
   try {
-    const { data: stats } = await sb.rpc('get_admin_stats');
-    if (stats) {
-      document.getElementById('statListings').textContent = stats.total_listings;
-      document.getElementById('statActive').textContent = stats.active_listings;
-      document.getElementById('statUsers').textContent = stats.total_users;
-      document.getElementById('statMessages').textContent = stats.unread_messages;
-    }
+    document.getElementById('statListings').textContent = await count('listings');
+    document.getElementById('statActive').textContent = await count('listings', q => q.eq('status', 'active'));
+    document.getElementById('statUsers').textContent = await count('users');
+    document.getElementById('statMessages').textContent = await count('messages', q => q.eq('is_read', false));
     const { data: recent } = await sb.from('listings').select('*').order('created_at', { ascending: false }).limit(5);
-    const tbody = document.querySelector('#dashRecentTable tbody');
-    tbody.innerHTML = (recent || []).map(l => `<tr>
-      <td>${esc(l.title)}</td>
-      <td><span class="badge badge-${l.type}">${l.type}</span></td>
-      <td><span class="badge badge-${l.status}">${l.status}</span></td>
-      <td>${fmtPrice(l.price)}</td>
-      <td>${fmtDate(l.created_at)}</td>
+    document.querySelector('#dashRecentTable tbody').innerHTML = (recent || []).map(l => `<tr>
+      <td>${esc(l.title)}</td><td><span class="badge badge-${l.type}">${l.type}</span></td>
+      <td><span class="badge badge-${l.status}">${l.status}</span></td><td>${fmtPrice(l.price)}</td><td>${fmtDate(l.created_at)}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-muted)">Žádné inzeráty</td></tr>';
   } catch (e) { console.error(e); }
 }
 
-// ── LISTINGS ──
+// ── LISTINGS ── (čtení přes RLS is_admin; moderace přes edge admin-moderate-listing)
 async function loadListings() {
   const { data } = await sb.from('listings').select('*').order('created_at', { ascending: false });
-  const tbody = document.querySelector('#listingsTable tbody');
-  tbody.innerHTML = (data || []).map(l => `<tr>
-    <td>${esc(l.title)}</td>
-    <td><span class="badge badge-${l.type}">${l.type}</span></td>
-    <td><span class="badge badge-${l.status}">${l.status}</span></td>
-    <td>${fmtPrice(l.price)}</td>
-    <td>${esc(l.location || '—')}</td>
+  document.querySelector('#listingsTable tbody').innerHTML = (data || []).map(l => `<tr>
+    <td>${esc(l.title)}</td><td><span class="badge badge-${l.type}">${l.type}</span></td>
+    <td><span class="badge badge-${l.status}">${l.status}</span></td><td>${fmtPrice(l.price)}</td><td>${esc(l.location || '—')}</td>
     <td class="btn-actions">
-      ${l.status !== 'active' ? `<button class="btn-sm btn-sm-success" onclick="updateListing('${l.id}','active')">✓ Aktivovat</button>` : ''}
-      ${l.status === 'active' ? `<button class="btn-sm" onclick="updateListing('${l.id}','hidden')">Skrýt</button>` : ''}
+      ${l.status !== 'active' ? `<button class="btn-sm btn-sm-success" onclick="moderate('${l.id}','active')">✓ Schválit</button>` : ''}
+      ${l.status === 'active' ? `<button class="btn-sm" onclick="moderate('${l.id}','draft')">Skrýt</button>` : ''}
+      ${l.status !== 'rejected' ? `<button class="btn-sm" onclick="moderate('${l.id}','rejected')">Zamítnout</button>` : ''}
       <button class="btn-sm btn-sm-danger" onclick="deleteListing('${l.id}')">✕</button>
-    </td>
-  </tr>`).join('') || '<tr><td colspan="6">Žádné inzeráty</td></tr>';
+    </td></tr>`).join('') || '<tr><td colspan="6">Žádné inzeráty</td></tr>';
 }
-
-async function updateListing(id, status) {
-  await sb.from('listings').update({ status }).eq('id', id);
-  toast('Inzerát aktualizován');
+async function moderate(id, status) {
+  const { data, error } = await sb.functions.invoke('admin-moderate-listing', { body: { listing_id: id, status } });
+  if (error || !data?.ok) { toast('Chyba: ' + (error?.message || data?.error || 'neznámá'), 'error'); return; }
+  toast(status === 'active' ? 'Schváleno (e-mail majiteli odeslán)' : status === 'rejected' ? 'Zamítnuto' : 'Aktualizováno');
   loadListings();
 }
-
 async function deleteListing(id) {
   if (!confirm('Opravdu smazat tento inzerát?')) return;
-  await sb.from('listings').delete().eq('id', id);
-  toast('Inzerát smazán');
-  loadListings();
+  const { error } = await sb.from('listings').delete().eq('id', id);   // RLS: owner_delete povoluje is_admin
+  if (error) { toast('Chyba při mazání', 'error'); return; }
+  toast('Inzerát smazán'); loadListings();
 }
 
-// ── USERS ──
+// ── USERS ── (čtení i ověření KYC přes RLS is_admin)
 async function loadUsers() {
   const { data } = await sb.from('users').select('*').order('created_at', { ascending: false });
-  const tbody = document.querySelector('#usersTable tbody');
-  tbody.innerHTML = (data || []).map(u => `<tr>
-    <td>${esc(u.name || '—')}</td>
-    <td>${esc(u.email)}</td>
-    <td>${esc(u.company || '—')}</td>
-    <td>${esc(u.account_type)}</td>
+  document.querySelector('#usersTable tbody').innerHTML = (data || []).map(u => `<tr>
+    <td>${esc(u.name || '—')}</td><td>${esc(u.email || '—')}</td><td>${esc(u.company || '—')}</td><td>${esc(u.account_type)}</td>
     <td><span class="badge badge-${u.kyc_status === 'verified' ? 'verified' : 'unverified'}">${u.kyc_status}</span></td>
-    <td class="btn-actions">
-      ${u.kyc_status !== 'verified' ? `<button class="btn-sm btn-sm-success" onclick="verifyUser('${u.id}')">✓ Ověřit</button>` : ''}
-      <button class="btn-sm btn-sm-danger" onclick="deleteUser('${u.id}')">✕</button>
-    </td>
+    <td class="btn-actions">${u.kyc_status !== 'verified' ? `<button class="btn-sm btn-sm-success" onclick="verifyUser('${u.id}')">✓ Ověřit</button>` : ''}</td>
   </tr>`).join('') || '<tr><td colspan="6">Žádní uživatelé</td></tr>';
 }
-
 async function verifyUser(id) {
-  await sb.from('users').update({ kyc_status: 'verified' }).eq('id', id);
-  toast('Uživatel ověřen');
-  loadUsers();
+  const { error } = await sb.from('users').update({ kyc_status: 'verified' }).eq('id', id);
+  if (error) { toast('Chyba při ověřování', 'error'); return; }
+  toast('Uživatel ověřen'); loadUsers();
 }
 
-async function deleteUser(id) {
-  if (!confirm('Opravdu smazat uživatele?')) return;
-  await sb.from('users').delete().eq('id', id);
-  toast('Uživatel smazán');
-  loadUsers();
-}
-
-// ── MESSAGES ──
+// ── MESSAGES ── (číst/upravit/mazat smí admin přes RLS, migrace 015 + 018)
 async function loadMessages() {
   const { data } = await sb.from('messages').select('*').order('created_at', { ascending: false });
-  const tbody = document.querySelector('#messagesTable tbody');
-  tbody.innerHTML = (data || []).map(m => `<tr>
-    <td>${esc(m.name)}</td>
-    <td><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></td>
-    <td>${esc(m.type)}</td>
+  document.querySelector('#messagesTable tbody').innerHTML = (data || []).map(m => `<tr>
+    <td>${esc(m.name)}</td><td><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></td><td>${esc(m.type)}</td>
     <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.message)}</td>
-    <td>${fmtDate(m.created_at)}</td>
-    <td><span class="badge badge-${m.is_read ? 'read' : 'unread'}">${m.is_read ? 'přečteno' : 'nové'}</span></td>
-    <td class="btn-actions">
-      ${!m.is_read ? `<button class="btn-sm" onclick="markRead('${m.id}')">✓ Přečteno</button>` : ''}
-      <button class="btn-sm btn-sm-danger" onclick="deleteMessage('${m.id}')">✕</button>
-    </td>
+    <td>${fmtDate(m.created_at)}</td><td><span class="badge badge-${m.is_read ? 'read' : 'unread'}">${m.is_read ? 'přečteno' : 'nové'}</span></td>
+    <td class="btn-actions">${!m.is_read ? `<button class="btn-sm" onclick="markRead('${m.id}')">✓ Přečteno</button>` : ''}<button class="btn-sm btn-sm-danger" onclick="deleteMessage('${m.id}')">✕</button></td>
   </tr>`).join('') || '<tr><td colspan="7">Žádné zprávy</td></tr>';
 }
-
 async function markRead(id) {
-  await sb.from('messages').update({ is_read: true }).eq('id', id);
-  toast('Označeno jako přečtené');
-  loadMessages();
+  const { error } = await sb.from('messages').update({ is_read: true }).eq('id', id);
+  if (error) { toast('Chyba', 'error'); return; }
+  toast('Označeno jako přečtené'); loadMessages();
 }
-
 async function deleteMessage(id) {
   if (!confirm('Smazat zprávu?')) return;
-  await sb.from('messages').delete().eq('id', id);
-  toast('Zpráva smazána');
-  loadMessages();
+  const { error } = await sb.from('messages').delete().eq('id', id);
+  if (error) { toast('Chyba při mazání', 'error'); return; }
+  toast('Zpráva smazána'); loadMessages();
 }
 
-// ── CONTENT EDITOR ──
-let contentBlocks = {};
-let activeBlock = null;
+// ── REGISTRIES ── (čtení veřejné; uložení přes admin RPC is_admin)
+async function loadRegistries() {
+  const tbody = document.querySelector('#registriesTable tbody');
+  try {
+    const { data } = await sb.from('registry_config').select('*').order('sort');
+    tbody.innerHTML = (data || []).map(r => `<tr>
+      <td><strong>${esc(r.label)}</strong><br><small style="color:#888">${r.registry}</small></td>
+      <td><input type="checkbox" id="reg-en-${r.registry}" ${r.enabled ? 'checked' : ''}></td>
+      <td><input type="number" id="reg-pr-${r.registry}" value="${r.price_credits}" min="0" step="1" style="width:80px"></td>
+      <td><button class="btn-sm btn-sm-success" onclick="saveRegistry('${r.registry}')">💾 Uložit</button></td>
+    </tr>`).join('') || '<tr><td colspan="4">Žádné rejstříky</td></tr>';
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="4">Nepodařilo se načíst (${e.message}).</td></tr>`; }
+}
+async function saveRegistry(reg) {
+  const enabled = document.getElementById('reg-en-' + reg).checked;
+  const price = Math.max(0, parseInt(document.getElementById('reg-pr-' + reg).value, 10) || 0);
+  const { data, error } = await sb.rpc('admin_update_registry_config', { p_registry: reg, p_enabled: enabled, p_price: price, p_levels: null });
+  if (error || !data?.ok) { toast('Uložení selhalo: ' + (data?.error || error?.message || ''), 'error'); return; }
+  toast('Rejstřík uložen'); loadRegistries();
+}
 
+// ── CONTENT EDITOR ── (uložení přes admin_update_content is_admin)
+let contentBlocks = {}, activeBlock = null;
 async function loadContent() {
   const { data } = await sb.from('content').select('*').order('block_key');
   contentBlocks = {};
-  (data || []).forEach(r => { contentBlocks[r.block_key] = { id: r.id, fields: r.fields || {} }; });
-
-  const tabs = document.getElementById('contentTabs');
+  (data || []).forEach(r => { contentBlocks[r.block_key] = { fields: r.fields || {} }; });
   const keys = Object.keys(contentBlocks);
-  tabs.innerHTML = keys.map((k, i) => `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="selectBlock('${k}', this)">${k}</button>`).join('');
-
-  if (keys.length > 0) selectBlock(keys[0]);
+  document.getElementById('contentTabs').innerHTML = keys.map((k, i) => `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="selectBlock('${k}', this)">${k}</button>`).join('');
+  if (keys.length) selectBlock(keys[0]);
 }
-
 function selectBlock(key, btn) {
   activeBlock = key;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  else document.querySelector('.tab-btn')?.classList.add('active');
-
+  if (btn) btn.classList.add('active'); else document.querySelector('.tab-btn')?.classList.add('active');
   const fields = contentBlocks[key]?.fields || {};
-  const container = document.getElementById('contentFields');
-  container.innerHTML = Object.entries(fields).map(([k, v]) => `
-    <div class="field-group">
-      <label>${key}.${k}</label>
-      ${v.length > 80 ? `<textarea data-field="${k}" rows="3">${esc(v)}</textarea>` : `<input data-field="${k}" value="${esc(v)}">`}
-    </div>
+  document.getElementById('contentFields').innerHTML = Object.entries(fields).map(([k, v]) => `
+    <div class="field-group"><label>${key}.${k}</label>
+    ${String(v).length > 80 ? `<textarea data-field="${k}" rows="3">${esc(String(v))}</textarea>` : `<input data-field="${k}" value="${esc(String(v))}">`}</div>
   `).join('') || '<p style="color:var(--text-muted)">Žádná editovatelná pole</p>';
 }
-
 async function saveContent() {
   if (!activeBlock) return;
   const fields = {};
-  document.querySelectorAll('#contentFields [data-field]').forEach(el => {
-    fields[el.dataset.field] = el.value;
-  });
-  await sb.from('content').update({ fields }).eq('block_key', activeBlock);
-  toast('Obsah uložen — změny se projeví po refreshi webu');
+  document.querySelectorAll('#contentFields [data-field]').forEach(el => { fields[el.dataset.field] = el.value; });
+  const { data, error } = await sb.rpc('admin_update_content', { p_block_key: activeBlock, p_fields: fields });
+  if (error || !data?.ok) { toast('Chyba při ukládání: ' + (data?.error || error?.message || ''), 'error'); return; }
+  toast('Obsah uložen — projeví se po refreshi webu');
 }
 
-// ── SETTINGS ──
-let settingsData = {};
-
+// ── SETTINGS ── (raw JSON per klíč — robustní pro objekty i pole)
 async function loadSettings() {
-  const { data } = await sb.from('settings').select('*');
-  settingsData = {};
-  (data || []).forEach(r => { settingsData[r.key] = { id: r.id, value: r.value || {} }; });
-
-  const container = document.getElementById('settingsFields');
-  container.innerHTML = Object.entries(settingsData).map(([key, obj]) =>
-    `<h3 style="font-family:var(--font-display);font-size:1.1rem;margin:1.5rem 0 .8rem;font-weight:400">${key}</h3>` +
-    Object.entries(obj.value).map(([k, v]) => `
-      <div class="field-group">
-        <label>${k}</label>
-        <input data-settings-key="${key}" data-settings-field="${k}" value="${esc(String(v))}">
-      </div>
-    `).join('')
-  ).join('');
+  const { data } = await sb.from('settings').select('*').order('key');
+  document.getElementById('settingsFields').innerHTML = (data || []).map(r => {
+    const json = JSON.stringify(r.value, null, 2);
+    return `<div class="field-group"><label>${r.key}</label>
+      <textarea data-skey="${r.key}" rows="${Math.min(14, json.split('\n').length + 1)}" style="font-family:var(--font-mono);font-size:.82rem">${esc(json)}</textarea></div>`;
+  }).join('') || '<p style="color:var(--text-muted)">Žádná nastavení</p>';
 }
-
 async function saveSettings() {
-  const updates = {};
-  document.querySelectorAll('[data-settings-key]').forEach(el => {
-    const key = el.dataset.settingsKey;
-    const field = el.dataset.settingsField;
-    if (!updates[key]) updates[key] = { ...settingsData[key].value };
-    updates[key][field] = el.value;
-  });
-  for (const [key, value] of Object.entries(updates)) {
-    await sb.from('settings').update({ value }).eq('key', key);
+  const rows = document.querySelectorAll('#settingsFields [data-skey]');
+  let ok = true;
+  for (const el of rows) {
+    let value;
+    try { value = JSON.parse(el.value); } catch (e) { toast('Neplatný JSON u „' + el.dataset.skey + '"', 'error'); ok = false; continue; }
+    const { data, error } = await sb.rpc('admin_update_settings', { p_key: el.dataset.skey, p_value: value });
+    if (error || !data?.ok) ok = false;
   }
-  toast('Nastavení uloženo');
+  toast(ok ? 'Nastavení uloženo' : 'Některá nastavení se neuložila', ok ? 'success' : 'error');
 }
 
 // ── HELPERS ──
-function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function fmtPrice(n) { return n ? Number(n).toLocaleString('cs-CZ') + ' Kč' : '—'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('cs-CZ') : '—'; }
 </script>
