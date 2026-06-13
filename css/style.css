@@ -110,12 +110,13 @@ nav.scrolled { box-shadow:0 2px 20px rgba(15,23,42,.06); }
 .hero-stat-label { font-size:.78rem; color:var(--text-muted); }
 
 /* ─── HERO split + ověřovač protistrany ─── */
-.hero-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:3.5rem; align-items:center; }
+.hero-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:3.5rem; align-items:stretch; }
 .hero-left { min-width:0; }
+.hero-right { display:flex; }
 .hero-left .hero-headline, .hero-left .hero-desc { max-width:none; }
 .hero-left .hero-actions { margin-bottom:2.2rem; }
 .hero-left .hero-stats { margin-bottom:0; }
-.verifier-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:2rem; }
+.verifier-card { width:100%; display:flex; flex-direction:column; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:2rem; }
 .verifier-tag { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--brand); font-weight:600; margin-bottom:.6rem; }
 .verifier-card h3 { font-family:var(--font-display); font-size:1.4rem; font-weight:800; letter-spacing:-.01em; margin-bottom:.4rem; }
 .verifier-card > p { font-size:.9rem; color:var(--text-secondary); line-height:1.55; margin-bottom:1.2rem; }
@@ -126,7 +127,7 @@ nav.scrolled { box-shadow:0 2px 20px rgba(15,23,42,.06); }
 .verifier-form input { flex:1; min-width:150px; padding:.8rem 1rem; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font-body); font-size:.95rem; background:var(--bg-secondary); color:var(--text-primary); }
 .verifier-form input:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--gold-dim); background:var(--bg-card); }
 .verifier-form .btn-primary { padding:.8rem 1.4rem; white-space:nowrap; }
-.verifier-card > small { display:block; margin-top:1rem; font-size:.74rem; color:var(--text-muted); line-height:1.5; }
+.verifier-card > small { display:block; margin-top:auto; padding-top:1.2rem; font-size:.74rem; color:var(--text-muted); line-height:1.5; }
 .verifier-result { margin-top:1.2rem; display:flex; flex-direction:column; gap:.5rem; }
 .verifier-result:empty { margin-top:0; }
 .vscore { font-size:.9rem; font-weight:700; margin-bottom:.2rem; }
