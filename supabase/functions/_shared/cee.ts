@@ -71,15 +71,18 @@ export function validateSubject(s: unknown): Subject | null {
   if (!s || typeof s !== "object") return null;
   const o = s as Record<string, unknown>;
   if (o.type === "po") {
-    const ico = String(o.ico ?? "").replace(/\D/g, "");
+    const ico = String(o.ico ?? "").replace(/[^0-9]/g, "");
     return ico.length === 8 ? { type: "po", ico } : null;
   }
   if (o.type === "fo") {
     const firstName = String(o.firstName ?? "").trim();
     const lastName = String(o.lastName ?? "").trim();
     const birthDate = String(o.birthDate ?? "");
-    const rc = o.rc ? String(o.rc).replace(/\D/g, "") : null;
-    if (!firstName || !lastName || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
+    const rc = o.rc ? String(o.rc).replace(/[^0-9]/g, "") : null;
+    // ISO YYYY-MM-DD bez backslash-tříd (odolné vůči escapování při deploy).
+    const isoDate = birthDate.length === 10 && birthDate.charAt(4) === "-" &&
+      birthDate.charAt(7) === "-" && /^[0-9-]+$/.test(birthDate);
+    if (!firstName || !lastName || !isoDate) return null;
     if (rc && (rc.length < 9 || rc.length > 10)) return null;
     return { type: "fo", firstName, lastName, birthDate, rc };
   }

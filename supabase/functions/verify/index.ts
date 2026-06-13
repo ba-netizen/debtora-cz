@@ -58,15 +58,14 @@ function adminClient() {
 
 // ── XML helpery (live adaptery) ──
 function xmlEscape(s: string): string {
-  return s.replace(/[<>&'"]/g, (c) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]!));
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 }
 function xmlText(xml: string, tag: string): string | null {
-  const m = xml.match(new RegExp(`<(?:\\w+:)?${tag}[^>]*>([\\s\\S]*?)</(?:\\w+:)?${tag}>`));
+  const m = xml.match(new RegExp(`<(?:[A-Za-z0-9_]+:)?${tag}[^>]*>([^]*?)</(?:[A-Za-z0-9_]+:)?${tag}>`));
   return m ? m[1].trim() : null;
 }
 function xmlBlocks(xml: string, tag: string): string[] {
-  const re = new RegExp(`<(?:\\w+:)?${tag}[^>]*>([\\s\\S]*?)</(?:\\w+:)?${tag}>`, "g");
+  const re = new RegExp(`<(?:[A-Za-z0-9_]+:)?${tag}[^>]*>([^]*?)</(?:[A-Za-z0-9_]+:)?${tag}>`, "g");
   const out: string[] = [];
   let m;
   while ((m = re.exec(xml)) !== null) out.push(m[1]);
@@ -119,7 +118,7 @@ async function checkDph(subject: SubjectPO): Promise<RegistryResult> {
   });
   const xml = await res.text();
   if (!res.ok) throw new Error(`DPH HTTP ${res.status}`);
-  const m = xml.match(/nespolehlivyPlatce="(\w+)"/);
+  const m = xml.match(/nespolehlivyPlatce="([A-Za-z0-9_]+)"/);
   if (!m) throw new Error("DPH: neočekávaná odpověď");
   return m[1] === "ANO"
     ? { status: "found", detail: "Nespolehlivý plátce DPH." }
