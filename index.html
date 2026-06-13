@@ -40,17 +40,44 @@
 <section class="hero-section">
   <div class="hero-bg"></div>
   <div class="container">
-    <div class="hero-tag" data-cms="homepage.hero_tag">Česká platforma pro distressed assets</div>
-    <h1 class="hero-headline" data-cms="homepage.hero_headline">Investujte do <em>podhodnocených aktiv</em> s&nbsp;důvěrou</h1>
-    <p class="hero-desc" data-cms="homepage.hero_desc">DEBTORA CZ propojuje kupující a prodávající na trhu pohledávek, nemovitostí ve fire sale a OTC cenných papírů.</p>
-    <div class="hero-actions">
-      <a href="trziste.html" class="btn-primary" data-cms="homepage.hero_cta">Prohlédnout nabídky →</a>
-      <a href="jak-to-funguje.html" class="btn-secondary">Jak to funguje</a>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><span class="hero-stat-num">2.4 mld</span><span class="hero-stat-label">Kč v nabídkách</span></div>
-      <div class="hero-stat"><span class="hero-stat-num">340+</span><span class="hero-stat-label">Aktivních inzerátů</span></div>
-      <div class="hero-stat"><span class="hero-stat-num">98%</span><span class="hero-stat-label">Spokojenost klientů</span></div>
+    <div class="hero-grid">
+      <div class="hero-left">
+        <div class="hero-tag" data-cms="homepage.hero_tag">Česká platforma pro distressed assets</div>
+        <h1 class="hero-headline" data-cms="homepage.hero_headline">Investujte do <em>podhodnocených aktiv</em> s&nbsp;důvěrou</h1>
+        <p class="hero-desc" data-cms="homepage.hero_desc">DEBTORA CZ propojuje kupující a prodávající na trhu pohledávek, nemovitostí ve fire sale a OTC cenných papírů.</p>
+        <div class="hero-actions">
+          <a href="trziste.html" class="btn-primary" data-cms="homepage.hero_cta">Prohlédnout nabídky →</a>
+          <a href="jak-to-funguje.html" class="btn-secondary">Jak to funguje</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-num">2.4 mld</span><span class="hero-stat-label">Kč v nabídkách</span></div>
+          <div class="hero-stat"><span class="hero-stat-num">340+</span><span class="hero-stat-label">Aktivních inzerátů</span></div>
+          <div class="hero-stat"><span class="hero-stat-num">98%</span><span class="hero-stat-label">Spokojenost klientů</span></div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="verifier-card">
+          <div class="verifier-tag">🔎 Ověřovač protistrany</div>
+          <h3>Prověřte firmu zdarma</h3>
+          <p>Zadejte IČO firmy a okamžitě zjistěte záznamy v ARES, insolvenčním rejstříku a registru nespolehlivých plátců DPH.</p>
+          <div class="verifier-toggle">
+            <button type="button" id="vTypePo" class="active" onclick="vSetType('po')">Firma (IČO)</button>
+            <button type="button" id="vTypeFo" onclick="vSetType('fo')">Osoba</button>
+          </div>
+          <div class="verifier-form" id="vFormPo">
+            <input id="vIco" inputmode="numeric" maxlength="8" placeholder="IČO (8 číslic)" />
+            <button class="btn-primary" id="vBtn" onclick="verifyHome()">Ověřit zdarma →</button>
+          </div>
+          <div class="verifier-form" id="vFormFo" style="display:none;flex-direction:column">
+            <input id="vFirst" placeholder="Jméno" />
+            <input id="vLast" placeholder="Příjmení" />
+            <input id="vBirth" type="date" />
+            <button class="btn-primary" onclick="verifyHome()">Ověřit zdarma →</button>
+          </div>
+          <div id="vResult" class="verifier-result"></div>
+          <small>Bezplatná základní kontrola. Hlubší prověrku (exekuce, katastr, Bank&nbsp;iD) najdete v sekci <a href="overeni-najemce.html">Ověření</a>.</small>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -181,6 +208,53 @@
     }
   } catch(e) { console.error(e); }
 })();
+
+// ── Ověřovač protistrany (hero) — bezplatná FOC kontrola přes edge `verify` ──
+let vType = 'po';
+function vSetType(t) {
+  vType = t;
+  document.getElementById('vTypePo').classList.toggle('active', t === 'po');
+  document.getElementById('vTypeFo').classList.toggle('active', t === 'fo');
+  document.getElementById('vFormPo').style.display = t === 'po' ? 'flex' : 'none';
+  document.getElementById('vFormFo').style.display = t === 'fo' ? 'flex' : 'none';
+  document.getElementById('vResult').innerHTML = '';
+}
+const V_LABELS = { ares:'ARES', isir:'Insolvence', dph:'Nespolehlivý DPH', cee:'Exekuce', katastr:'Katastr', vozidla:'Vozidla', atp:'ATP', bankid:'Bank iD' };
+async function verifyHome() {
+  const box = document.getElementById('vResult');
+  let subject;
+  if (vType === 'po') {
+    const ico = (document.getElementById('vIco').value || '').replace(/\D/g, '');
+    if (ico.length !== 8) { box.innerHTML = '<span class="verr">Zadejte platné 8místné IČO.</span>'; return; }
+    subject = { type:'po', ico };
+  } else {
+    const firstName = document.getElementById('vFirst').value.trim();
+    const lastName = document.getElementById('vLast').value.trim();
+    const birthDate = document.getElementById('vBirth').value;
+    if (!firstName || !lastName || !birthDate) { box.innerHTML = '<span class="verr">Vyplňte jméno, příjmení a datum narození.</span>'; return; }
+    subject = { type:'fo', firstName, lastName, birthDate };
+  }
+  const btn = document.getElementById('vBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Ověřuji…'; }
+  box.innerHTML = '<span class="vmuted">Kontroluji rejstříky…</span>';
+  try {
+    const res = await API.verify(subject, 'foc_nologin');
+    if (res.rateLimited) { box.innerHTML = '<span class="verr">Vyčerpán denní limit bezplatných kontrol. Přihlaste se pro více.</span>'; }
+    else if (res.error) { box.innerHTML = '<span class="verr">' + res.error + '</span>'; }
+    else {
+      const rows = Object.entries(res.results || {}).map(([k, v]) => {
+        const detail = (v.detail || '').replace(/^Mock [^:]+:\s*/, '');
+        return `<div class="vrow"><span class="vgly v-${v.status}">${v.glyph}</span><span class="vlbl">${V_LABELS[k] || k}</span><span class="vdet">${detail}</span></div>`;
+      }).join('');
+      const score = res.risk_score ?? 0;
+      box.innerHTML = `<div class="vscore">Rizikové skóre: <b>${score}/100</b></div>${rows}<a class="vmore" href="overeni-najemce.html">Detailní prověrka →</a>`;
+    }
+  } catch (e) {
+    box.innerHTML = '<span class="verr">Ověření se nepodařilo. Zkuste to prosím později.</span>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Ověřit zdarma →'; }
+}
+window.vSetType = vSetType; window.verifyHome = verifyHome;
 </script>
 </body>
 </html>

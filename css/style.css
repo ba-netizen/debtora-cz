@@ -109,6 +109,37 @@ nav.scrolled { box-shadow:0 2px 20px rgba(15,23,42,.06); }
 .hero-stat-num { font-family:var(--font-display); font-size:1.9rem; font-weight:800; color:var(--brand); font-variant-numeric:tabular-nums; }
 .hero-stat-label { font-size:.78rem; color:var(--text-muted); }
 
+/* ─── HERO split + ověřovač protistrany ─── */
+.hero-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:3.5rem; align-items:center; }
+.hero-left { min-width:0; }
+.hero-left .hero-headline, .hero-left .hero-desc { max-width:none; }
+.hero-left .hero-actions { margin-bottom:2.2rem; }
+.hero-left .hero-stats { margin-bottom:0; }
+.verifier-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:2rem; }
+.verifier-tag { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--brand); font-weight:600; margin-bottom:.6rem; }
+.verifier-card h3 { font-family:var(--font-display); font-size:1.4rem; font-weight:800; letter-spacing:-.01em; margin-bottom:.4rem; }
+.verifier-card > p { font-size:.9rem; color:var(--text-secondary); line-height:1.55; margin-bottom:1.2rem; }
+.verifier-toggle { display:flex; gap:.4rem; margin-bottom:.8rem; }
+.verifier-toggle button { flex:1; padding:.5rem; font-family:var(--font-body); font-size:.82rem; font-weight:600; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); border-radius:var(--radius-sm); cursor:pointer; transition:all .2s; }
+.verifier-toggle button.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+.verifier-form { display:flex; gap:.6rem; flex-wrap:wrap; }
+.verifier-form input { flex:1; min-width:150px; padding:.8rem 1rem; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font-body); font-size:.95rem; background:var(--bg-secondary); color:var(--text-primary); }
+.verifier-form input:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--gold-dim); background:var(--bg-card); }
+.verifier-form .btn-primary { padding:.8rem 1.4rem; white-space:nowrap; }
+.verifier-card > small { display:block; margin-top:1rem; font-size:.74rem; color:var(--text-muted); line-height:1.5; }
+.verifier-result { margin-top:1.2rem; display:flex; flex-direction:column; gap:.5rem; }
+.verifier-result:empty { margin-top:0; }
+.vscore { font-size:.9rem; font-weight:700; margin-bottom:.2rem; }
+.vrow { display:flex; align-items:flex-start; gap:.6rem; font-size:.84rem; padding:.45rem .65rem; background:var(--bg-secondary); border-radius:var(--radius-sm); }
+.vgly { font-size:1rem; line-height:1.25; flex-shrink:0; }
+.v-clear { color:var(--success); } .v-found { color:#b45309; } .v-error, .v-locked { color:var(--danger); } .v-unavailable, .v-skipped { color:var(--text-muted); }
+.vlbl { font-weight:600; flex-shrink:0; }
+.vdet { color:var(--text-secondary); }
+.vmuted { color:var(--text-muted); font-size:.85rem; }
+.verr { color:var(--danger); font-size:.85rem; }
+.vmore { display:inline-block; margin-top:.4rem; font-size:.82rem; font-weight:600; color:var(--brand); }
+@media (max-width:900px) { .hero-grid { grid-template-columns:1fr; gap:2.5rem; } }
+
 /* ─── TICKER ─── */
 .ticker { overflow:hidden; background:var(--text-primary); padding:.7rem 0; }
 .ticker-track { display:flex; gap:2rem; animation:tickerScroll 30s linear infinite; white-space:nowrap; }
