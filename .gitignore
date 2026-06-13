@@ -21,3 +21,11 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Stray local copies / archives (not part of the repo)
+debtora-cz-latest/
+debtora-cz-latest 2/
+debtora-cz-latest.zip
+
+# iOS app — separate workstream (out of scope for core)
+ios/
