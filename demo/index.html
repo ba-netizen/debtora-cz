@@ -38,6 +38,7 @@
   .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
   .tabs button{padding:7px 12px}
   .tabs button.active{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:700}
+  #typeFilter button.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
   .listing{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
   .listing .t{font-weight:700}
@@ -117,6 +118,12 @@
       <h2>Tržiště <span class="muted" style="font-size:12px">— veřejný náhled (listings_preview)</span></h2>
       <div class="hint">Mřížka čte <b>náhled</b> (marketing). Klik na „Plný detail" čte base <b>listings</b> —
         bez aktivního předplatného Inzerce vrátí 0 řádků → CTA „Aktivovat Inzerci".</div>
+      <div class="toolbar" id="typeFilter">
+        <button class="active" data-type="">Vše</button>
+        <button data-type="property">Nemovitosti</button>
+        <button data-type="debt">Pohledávky</button>
+        <button data-type="otc">Cenné papíry</button>
+      </div>
       <div class="grid" id="marketGrid"></div>
       <div id="detail"></div>
     </section>
@@ -433,10 +440,11 @@ function renderSession(){
 }
 function money(n){return n==null?'—':new Intl.NumberFormat('cs-CZ').format(n)+' Kč';}
 
+let marketType=''; // filtr Tržiště: '' | 'property' | 'debt' | 'otc'
 function renderMarket(){
   const g=document.getElementById('marketGrid'); g.innerHTML='';
-  const items=Core.preview();
-  if(!items.length) g.innerHTML='<div class="muted">Žádné položky v náhledu.</div>';
+  const items=Core.preview().filter(l=>!marketType||l.type===marketType);
+  if(!items.length) g.innerHTML='<div class="muted">Žádné položky v této kategorii.</div>';
   items.forEach(l=>{
     const d=document.createElement('div'); d.className='listing';
     d.innerHTML=`<span class="badge">${l.type}</span><span class="t">${l.title}</span>
@@ -506,6 +514,11 @@ function switchTab(name){
   document.querySelectorAll('.tabpane').forEach(p=>p.hidden=p.dataset.pane!==name);
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+document.querySelectorAll('#typeFilter button').forEach(b=>b.onclick=()=>{
+  marketType=b.dataset.type;
+  document.querySelectorAll('#typeFilter button').forEach(x=>x.classList.toggle('active',x===b));
+  renderMarket();
+});
 
 // verify UI
 function curSubject(){
