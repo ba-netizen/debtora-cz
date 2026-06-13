@@ -88,7 +88,9 @@ async function checkIsir(subject: Subject): Promise<RegistryResult> {
   const xml = await res.text();
   if (!res.ok) throw new Error(`ISIR HTTP ${res.status}`);
   const kodChyby = xmlText(xml, "kodChyby");
-  if (kodChyby) throw new Error(`ISIR ${kodChyby}`);
+  // WS2 = "Prázdný výsledek" → žádné záznamy = subjekt není v insolvenci (clear).
+  if (kodChyby === "WS2") return { status: "clear", detail: "Bez insolvenčního řízení." };
+  if (kodChyby) return { status: "error", message: `ISIR: ${xmlText(xml, "textChyby") ?? kodChyby}` };
   const records = xmlBlocks(xml, "data");
   if (records.length === 0) return { status: "clear", detail: "Bez insolvenčního řízení." };
   return { status: "found", detail: `Nalezeno řízení: ${records.length}`, payload: { count: records.length } };
