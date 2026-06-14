@@ -40,6 +40,7 @@ export function isFailureSentinel(subject: Subject): boolean {
 /** Váha rizika pro nález v daném rejstříku (0–100 agregace). */
 const RISK_WEIGHT: Record<string, number> = {
   cee: 45, isir: 35, dph: 25, atp: 20, vozidla: 10, katastr: 10, ares: 15, bankid: 0,
+  sankce: 50, upadci: 35, vies: 0, zivnost: 0, sbirka: 0, isds: 0,
 };
 
 /**
@@ -76,6 +77,20 @@ export function runRegistryMock(registry: string, subject: Subject): RegistryRes
       return { status: "clear", detail: "Mock ATP: bez dalších záznamů." };
     case "bankid":
       return { status: "clear", detail: "Mock Bank iD: totožnost ověřena." };
+    case "vies":
+      return { status: "clear", detail: "Mock VIES: DIČ je v EU platné." };
+    case "zivnost":
+      return { status: "clear", detail: "Mock RŽP: aktivní živnostenské oprávnění." };
+    case "upadci":
+      return hit
+        ? { status: "found", detail: "Mock CEÚ: záznam v evidenci úpadců." }
+        : { status: "clear", detail: "Mock CEÚ: bez záznamu." };
+    case "sbirka":
+      return { status: "clear", detail: "Mock: účetní závěrky dostupné ve sbírce listin." };
+    case "isds":
+      return { status: "clear", detail: "Mock ISDS: datová schránka existuje." };
+    case "sankce":
+      return { status: "clear", detail: "Mock: na sankčních/PEP seznamech nenalezen." };
     default:
       return { status: "unavailable", message: "Mock: neznámý rejstřík." };
   }

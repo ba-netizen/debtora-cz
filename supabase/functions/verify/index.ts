@@ -139,14 +139,66 @@ async function aresName(ico: string): Promise<string | null> {
   }
 }
 
-// Dispatch dle režimu. V live režimu mají adapter jen isir/ares/dph/cee.
+// Plná ARES data (pro RŽP/CEÚ/sbírku). Fail-soft.
+async function aresJson(ico: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetchWithTimeout(ARES_ENDPOINT + encodeURIComponent(ico), { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_e) { return null; }
+}
+
+// VIES — ověření DIČ v rámci EU (veřejné SOAP, zdarma). PO/DIČ.
+async function checkVies(subject: SubjectPO): Promise<RegistryResult> {
+  const env = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types"><soapenv:Body><urn:checkVat><urn:countryCode>CZ</urn:countryCode><urn:vatNumber>${xmlEscape(subject.ico)}</urn:vatNumber></urn:checkVat></soapenv:Body></soapenv:Envelope>`;
+  const res = await fetchWithTimeout("https://ec.europa.eu/taxation_customs/vies/services/checkVatService", { method: "POST", headers: { "Content-Type": "text/xml; charset=utf-8" }, body: env });
+  const xml = await res.text();
+  if (!res.ok) throw new Error(`VIES HTTP ${res.status}`);
+  const valid = xmlText(xml, "valid");
+  if (valid === "true") { const nm = xmlText(xml, "name"); return { status: "clear", detail: `Platné DIČ v EU (VIES)${nm && nm !== "---" ? " · " + nm : ""}.` }; }
+  return { status: "found", detail: "DIČ není v EU systému VIES platné." };
+}
+
+// Živnostenský rejstřík (RŽP) — přes ARES seznamRegistraci. PO/IČO.
+async function checkZivnost(subject: SubjectPO): Promise<RegistryResult> {
+  const d = await aresJson(subject.ico);
+  if (!d) return { status: "unavailable", message: "ARES nedostupný." };
+  const reg = (d.seznamRegistraci ?? {}) as Record<string, unknown>;
+  return reg.stavZdrojeRzp === "AKTIVNI"
+    ? { status: "clear", detail: "Aktivní živnostenské oprávnění (RŽP)." }
+    : { status: "clear", detail: "Bez aktivního živnostenského oprávnění." };
+}
+
+// Evidence úpadců (CEÚ) — přes ARES. PO/IČO.
+async function checkUpadci(subject: SubjectPO): Promise<RegistryResult> {
+  const d = await aresJson(subject.ico);
+  if (!d) return { status: "unavailable", message: "ARES nedostupný." };
+  const reg = (d.seznamRegistraci ?? {}) as Record<string, unknown>;
+  return reg.stavZdrojeCeu === "AKTIVNI"
+    ? { status: "found", detail: "Záznam v evidenci úpadců (CEÚ)." }
+    : { status: "clear", detail: "Bez záznamu v evidenci úpadců." };
+}
+
+// Sbírka listin / účetní závěrky — odkaz do veřejného rejstříku. PO/IČO.
+function checkSbirka(subject: SubjectPO): RegistryResult {
+  return { status: "clear", detail: `Účetní závěrky dostupné ve sbírce listin (or.justice.cz, IČO ${subject.ico}).`, payload: { url: `https://or.justice.cz/ias/ui/rejstrik-$firma?ico=${subject.ico}` } };
+}
+
+// Dispatch dle režimu.
 async function runRegistry(registry: string, subject: Subject): Promise<RegistryResult> {
   if (MODE !== "live") return runRegistryMock(registry, subject);
+  const poOnly = (msg: string): RegistryResult => ({ status: "skipped", message: msg });
   switch (registry) {
     case "isir": return await checkIsir(subject);
-    case "ares": return subject.type === "po" ? await checkAres(subject) : { status: "skipped", message: "ARES jen pro PO." };
-    case "dph": return subject.type === "po" ? await checkDph(subject) : { status: "skipped", message: "DPH jen pro PO." };
+    case "ares": return subject.type === "po" ? await checkAres(subject) : poOnly("ARES jen pro firmy.");
+    case "dph": return subject.type === "po" ? await checkDph(subject) : poOnly("DPH jen pro firmy.");
+    case "vies": return subject.type === "po" ? await checkVies(subject) : poOnly("VIES jen pro firmy (DIČ).");
+    case "zivnost": return subject.type === "po" ? await checkZivnost(subject) : poOnly("Živnost jen pro IČO.");
+    case "upadci": return subject.type === "po" ? await checkUpadci(subject) : poOnly("CEÚ jen pro IČO.");
+    case "sbirka": return subject.type === "po" ? checkSbirka(subject) : poOnly("Sbírka listin jen pro firmy.");
     case "cee": return await checkCee(subject);
+    case "isds": return { status: "unavailable", message: "Datová schránka — vyžaduje přístup ISDS (konfigurace)." };
+    case "sankce": return { status: "unavailable", message: "Sankční/PEP seznamy — připravujeme." };
     default: return { status: "unavailable", message: "Živý adapter zatím není k dispozici." };
   }
 }
