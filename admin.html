@@ -207,8 +207,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-si
           Vypnutý rejstřík se v prověrce zobrazí jako „kontrola dočasně vypnuta".
         </p>
         <table class="admin-table" id="registriesTable">
-          <thead><tr><th>Rejstřík</th><th>Aktivní</th><th>Cena (kredity)</th><th></th></tr></thead>
-          <tbody><tr><td colspan="4">Načítám…</td></tr></tbody>
+          <thead><tr><th>Rejstřík</th><th>Aktivní</th><th>Cena&nbsp;(kr.)</th><th>Úrovně služby</th><th></th></tr></thead>
+          <tbody><tr><td colspan="5">Načítám…</td></tr></tbody>
         </table>
         <p style="color:#888;font-size:.8rem;margin-top:.8rem">
           Pozn.: nákladová cena CEE je 17,50&nbsp;Kč/dotaz (Smart Collectors) — cenu v kreditech
@@ -374,18 +374,22 @@ async function loadRegistries() {
   const tbody = document.querySelector('#registriesTable tbody');
   try {
     const { data } = await sb.from('registry_config').select('*').order('sort');
+    const lvl = (r, k, lab) => `<label style="margin-right:.7rem;white-space:nowrap;font-size:.78rem"><input type="checkbox" id="reg-lv-${r.registry}-${k}" ${r['lvl_' + k] ? 'checked' : ''}> ${lab}</label>`;
     tbody.innerHTML = (data || []).map(r => `<tr>
       <td><strong>${esc(r.label)}</strong><br><small style="color:#888">${r.registry}</small></td>
       <td><input type="checkbox" id="reg-en-${r.registry}" ${r.enabled ? 'checked' : ''}></td>
-      <td><input type="number" id="reg-pr-${r.registry}" value="${r.price_credits}" min="0" step="1" style="width:80px"></td>
+      <td><input type="number" id="reg-pr-${r.registry}" value="${r.price_credits}" min="0" step="1" style="width:64px"></td>
+      <td>${lvl(r,'foc_nologin','FOC bez loginu')}${lvl(r,'foc_login','FOC login')}${lvl(r,'basic','Basic')}${lvl(r,'medium','Medium')}${lvl(r,'full','Full')}</td>
       <td><button class="btn-sm btn-sm-success" onclick="saveRegistry('${r.registry}')">💾 Uložit</button></td>
-    </tr>`).join('') || '<tr><td colspan="4">Žádné rejstříky</td></tr>';
-  } catch (e) { tbody.innerHTML = `<tr><td colspan="4">Nepodařilo se načíst (${e.message}).</td></tr>`; }
+    </tr>`).join('') || '<tr><td colspan="5">Žádné rejstříky</td></tr>';
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="5">Nepodařilo se načíst (${e.message}).</td></tr>`; }
 }
 async function saveRegistry(reg) {
   const enabled = document.getElementById('reg-en-' + reg).checked;
   const price = Math.max(0, parseInt(document.getElementById('reg-pr-' + reg).value, 10) || 0);
-  const { data, error } = await sb.rpc('admin_update_registry_config', { p_registry: reg, p_enabled: enabled, p_price: price, p_levels: null });
+  const L = (k) => document.getElementById('reg-lv-' + reg + '-' + k).checked;
+  const p_levels = { foc_nologin: L('foc_nologin'), foc_login: L('foc_login'), basic: L('basic'), medium: L('medium'), full: L('full') };
+  const { data, error } = await sb.rpc('admin_update_registry_config', { p_registry: reg, p_enabled: enabled, p_price: price, p_levels });
   if (error || !data?.ok) { toast('Uložení selhalo: ' + (data?.error || error?.message || ''), 'error'); return; }
   toast('Rejstřík uložen'); loadRegistries();
 }
