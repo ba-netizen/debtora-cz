@@ -30,3 +30,7 @@ debtora-cz-latest.zip
 # iOS app — separate workstream (out of scope for core)
 ios/
 .vercel
+
+# Editor/agent + FUSE mount artifacts (lokální, nepatří do repa)
+.claude/
+.fuse_hidden*
