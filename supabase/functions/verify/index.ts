@@ -151,12 +151,17 @@ async function aresJson(ico: string): Promise<Record<string, unknown> | null> {
 // VIES — ověření DIČ v rámci EU (veřejné SOAP, zdarma). PO/DIČ.
 async function checkVies(subject: SubjectPO): Promise<RegistryResult> {
   const env = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types"><soapenv:Body><urn:checkVat><urn:countryCode>CZ</urn:countryCode><urn:vatNumber>${xmlEscape(subject.ico)}</urn:vatNumber></urn:checkVat></soapenv:Body></soapenv:Envelope>`;
-  const res = await fetchWithTimeout("https://ec.europa.eu/taxation_customs/vies/services/checkVatService", { method: "POST", headers: { "Content-Type": "text/xml; charset=utf-8" }, body: env });
-  const xml = await res.text();
-  if (!res.ok) throw new Error(`VIES HTTP ${res.status}`);
-  const valid = xmlText(xml, "valid");
-  if (valid === "true") { const nm = xmlText(xml, "name"); return { status: "clear", detail: `Platné DIČ v EU (VIES)${nm && nm !== "---" ? " · " + nm : ""}.` }; }
-  return { status: "found", detail: "DIČ není v EU systému VIES platné." };
+  try {
+    const res = await fetchWithTimeout("https://ec.europa.eu/taxation_customs/vies/services/checkVatService", { method: "POST", headers: { "Content-Type": "text/xml; charset=utf-8" }, body: env });
+    if (!res.ok) return { status: "unavailable", message: "VIES je dočasně nedostupné — zkuste později." };
+    const xml = await res.text();
+    const valid = xmlText(xml, "valid");
+    if (valid === "true") { const nm = xmlText(xml, "name"); return { status: "clear", detail: `Platné DIČ v EU (VIES)${nm && nm !== "---" ? " · " + nm : ""}.` }; }
+    if (valid === "false") return { status: "found", detail: "DIČ není v EU systému VIES platné." };
+    return { status: "unavailable", message: "VIES je dočasně nedostupné — zkuste později." };
+  } catch (_e) {
+    return { status: "unavailable", message: "VIES je dočasně nedostupné — zkuste později." };
+  }
 }
 
 // Živnostenský rejstřík (RŽP) — přes ARES seznamRegistraci. PO/IČO.

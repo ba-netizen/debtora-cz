@@ -258,9 +258,11 @@ async function verifyHome() {
         return `<div class="vrow"><span class="vgly v-${v.status}">${v.glyph}</span><span class="vlbl">${V_LABELS[k] || k}</span><span class="vdet">${detail}</span></div>`;
       }).join('');
       const score = res.risk_score ?? 0;
+      const riskLabel = score === 0 ? 'bez zjištěného rizika' : score <= 30 ? 'nízké riziko' : score <= 60 ? 'střední riziko' : 'vysoké riziko';
       const nm = (displayName || res.subject_name || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
       const nameRow = nm ? `<div class="vname">🏢 <b>${nm}</b></div>` : '';
-      box.innerHTML = `${nameRow}<div class="vscore">Rizikové skóre: <b>${score}/100</b></div>${rows}<a class="vmore" href="overeni-najemce.html">Detailní prověrka →</a>`;
+      const legend = '<div class="vlegend">✓ v pořádku · ⚠ nález / pozor · — nekontrolováno nebo dočasně nedostupné · ✕ chyba · 🔒 placená úroveň</div>';
+      box.innerHTML = `${nameRow}<div class="vscore">Rizikové skóre: <b>${score}/100</b> <span class="vrisklbl">— ${riskLabel}</span></div>${rows}${legend}<a class="vmore" href="overeni-najemce.html">Detailní prověrka →</a>`;
     }
   } catch (e) {
     box.innerHTML = '<span class="verr">Ověření se nepodařilo. Zkuste to prosím později.</span>';
