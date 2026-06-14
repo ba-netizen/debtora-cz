@@ -21,9 +21,9 @@
     <div class="nav-dropdown">
       <a href="#">Služby ▾</a>
       <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
-        <a href="sluzby-dluhy.html"><span class="dd-icon">📄</span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
-        <a href="sluzby-otc.html"><span class="dd-icon">📊</span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
-        <a href="sluzby-nemovitosti.html"><span class="dd-icon">🏚️</span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+        <a href="sluzby-dluhy.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10L12 3l9 7"/><path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 21v-6h4v6"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
       </div></div>
     </div>
     <a href="trziste.html">Tržiště</a>
@@ -46,9 +46,9 @@
 <section>
   <div class="container">
     <div class="account-tabs">
-      <button class="acc-tab active" onclick="showAccTab('profile',this)">👤 Profil</button>
-      <button class="acc-tab" onclick="showAccTab('my-listings',this)">📋 Moje inzeráty</button>
-      <button class="acc-tab" onclick="showAccTab('favorites',this)">⭐ Uložené</button>
+      <button class="acc-tab active" onclick="showAccTab('profile',this)"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Profil</button>
+      <button class="acc-tab" onclick="showAccTab('my-listings',this)"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="3" width="6" height="4" rx="1"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Moje inzeráty</button>
+      <button class="acc-tab" onclick="showAccTab('favorites',this)"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 14.9 9.2 21.5 9.7 16.5 14.2 18 20.7 12 17.2 6 20.7 7.5 14.2 2.5 9.7 9.1 9.2 12 3"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Uložené</button>
       <button class="acc-tab acc-tab-logout" onclick="Auth.logout()">Odhlásit se ↗</button>
     </div>
 
@@ -69,7 +69,7 @@
           <div class="profile-row"><span class="profile-label">KYC ověření</span><span id="pKyc">—</span></div>
           <div class="profile-row"><span class="profile-label">Registrace</span><span id="pDate">—</span></div>
           <div id="kycNotice" class="kyc-notice" style="display:none">
-            <p>⏳ Vaše identita ještě nebyla ověřena. Po ověření (KYC) získáte přístup k plným detailům nabídek a kontaktním údajům prodávajících.</p>
+            <p><svg class="ico ico-warn" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Vaše identita ještě nebyla ověřena. Po ověření (KYC) získáte přístup k plným detailům nabídek a kontaktním údajům prodávajících.</p>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@
   const authUser = await Auth.getUser();
   const email = p.email || authUser?.email || '';
   const name = p.name || authUser?.user_metadata?.name || email;
-  const kycMap = { verified: '✅ Ověřeno', pending: '⏳ Čeká na ověření', unverified: '❌ Neověřeno', rejected: '❌ Zamítnuto' };
+  const kycMap = { verified: '<svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="16 9.5 11 14.5 8.5 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Ověřeno', pending: '<svg class="ico ico-warn" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Čeká na ověření', unverified: '<svg class="ico ico-danger" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Neověřeno', rejected: '<svg class="ico ico-danger" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> Zamítnuto' };
   const typeMap = { buyer: 'Kupující', seller: 'Prodávající', both: 'Kupující i prodávající', broker: 'Broker' };
   document.getElementById('userName').textContent = name;
   document.getElementById('userStatus').textContent = typeMap[p.account_type] || p.account_type || '—';

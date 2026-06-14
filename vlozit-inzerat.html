@@ -21,9 +21,9 @@
     <div class="nav-dropdown">
       <a href="#">Služby ▾</a>
       <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
-        <a href="sluzby-dluhy.html"><span class="dd-icon">📄</span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
-        <a href="sluzby-otc.html"><span class="dd-icon">📊</span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
-        <a href="sluzby-nemovitosti.html"><span class="dd-icon">🏚️</span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+        <a href="sluzby-dluhy.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10L12 3l9 7"/><path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 21v-6h4v6"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
       </div></div>
     </div>
     <a href="trziste.html">Tržiště</a>
@@ -66,7 +66,7 @@
           <div class="file-upload-zone" id="uploadZone">
             <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none">
             <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
-              <span class="upload-icon">📎</span>
+              <span class="upload-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11l-8.5 8.5a5 5 0 0 1-7-7L14 4a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span>
               <span>Klikněte pro nahrání fotek a dokumentů</span>
               <small>JPG, PNG, WebP, PDF — max 10 MB na soubor, max 8 souborů</small>
             </div>
@@ -138,9 +138,9 @@ function renderPreview() {
     const isImage = f.type.startsWith('image/');
     const thumb = isImage ? URL.createObjectURL(f) : null;
     return `<div class="upload-item">
-      ${thumb ? `<img src="${thumb}" alt="${f.name}">` : `<div class="upload-item-icon">📄</div>`}
+      ${thumb ? `<img src="${thumb}" alt="${f.name}">` : `<div class="upload-item-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></div>`}
       <span class="upload-item-name">${f.name}</span>
-      <button type="button" class="upload-item-remove" onclick="removeFile(${i})">✕</button>
+      <button type="button" class="upload-item-remove" onclick="removeFile(${i})"><svg class="ico ico-no" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></button>
     </div>`;
   }).join('');
 }
@@ -198,7 +198,7 @@ document.getElementById('listingForm').addEventListener('submit', async function
     }
 
     const charged = res.charged ? ' Z účtu byl stržen 1 kredit a ověřena vaše totožnost pro letošní rok.' : '';
-    this.innerHTML = '<div class="form-success"><span class="success-icon">✓</span><h3>Inzerát vložen!</h3><p>Čeká na schválení adminem a poté se zobrazí na tržišti (vyžaduje aktivní předplatné Inzerce).' + charged + '</p><a href="ucet.html" class="btn-primary" style="margin-top:1.5rem;">Můj účet →</a></div>';
+    this.innerHTML = '<div class="form-success"><span class="success-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><h3>Inzerát vložen!</h3><p>Čeká na schválení adminem a poté se zobrazí na tržišti (vyžaduje aktivní předplatné Inzerce).' + charged + '</p><a href="ucet.html" class="btn-primary" style="margin-top:1.5rem;">Můj účet →</a></div>';
     showToast('Inzerát vložen!', 'success');
   } catch (err) { showToast(err.message, 'error'); setLoading(btn, false); }
 });

@@ -468,3 +468,14 @@ a.listing-card { text-decoration:none; color:var(--text-primary); display:flex; 
 .doc-icon { font-size:1.3rem; }
 .doc-name { flex:1; font-size:.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .doc-size { font-size:.78rem; color:var(--text-muted); font-family:var(--font-mono); }
+
+/* ─── ICON SET (line ikony v souladu s logem) ─── */
+.ico { display:inline-block; vertical-align:-0.14em; }
+.dd-icon, .service-icon, .feature-icon, .value-icon, .reg-icon,
+.locked-icon, .upload-icon, .upload-item-icon, .doc-icon, .payoff-icon { color:var(--brand); }
+.feature-icon, .service-icon, .value-icon { line-height:1; }
+
+.ico-ok{color:var(--success)}
+.ico-no{color:var(--text-muted)}
+.ico-danger{color:var(--danger)}
+.ico-warn{color:#b45309}
