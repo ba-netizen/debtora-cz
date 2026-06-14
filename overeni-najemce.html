@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ověření nájemce — DEBTORA CZ</title>
+<meta name="description" content="Ověřte si nájemce v insolvenčním rejstříku, evidenci exekucí a dalších registrech. Pronajímejte bezpečně.">
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ─── VERIFY MODULE ─── */
+.verify-grid { display:grid; grid-template-columns:1fr 380px; gap:2.5rem; align-items:start; }
+.verify-form-card { border:1px solid var(--border); background:var(--bg-card); padding:2.5rem 2rem; }
+.verify-form-card h3 { font-family:var(--font-display); font-size:1.3rem; font-weight:400; margin-bottom:1.5rem; }
+.subject-toggle { display:flex; gap:0; margin-bottom:1.8rem; border:1px solid var(--border); }
+.subject-toggle button { flex:1; padding:.7rem 1rem; background:var(--bg-card); border:none; font-family:var(--font-body); font-size:.88rem; cursor:pointer; color:var(--text-secondary); transition:all .2s; }
+.subject-toggle button.active { background:var(--gold); color:#fff; font-weight:500; }
+.field-hint { font-size:.74rem; color:var(--text-muted); margin-top:.3rem; line-height:1.5; }
+.verify-sidebar { display:flex; flex-direction:column; gap:1.2rem; position:sticky; top:calc(var(--nav-h) + var(--disc-h) + 1.5rem); }
+.registry-list { display:flex; flex-direction:column; gap:.5rem; }
+.registry-item { display:flex; align-items:center; gap:.8rem; padding:.85rem 1rem; border:1px solid var(--border); background:var(--bg-card); font-size:.85rem; }
+.registry-item .reg-icon { font-size:1.2rem; }
+.registry-item .reg-name { flex:1; }
+.registry-item .reg-name small { display:block; font-size:.72rem; color:var(--text-muted); }
+.reg-tag { font-size:.66rem; letter-spacing:.06em; text-transform:uppercase; padding:.25rem .6rem; font-weight:500; white-space:nowrap; }
+.reg-tag-free { background:#e8f5e9; color:var(--success); }
+.reg-tag-paid { background:#fef3e2; color:var(--gold); }
+/* Results */
+#verify-results { display:none; }
+.result-summary { text-align:center; padding:2.5rem 2rem; border:1px solid var(--border); background:var(--bg-card); margin-bottom:1.5rem; }
+.risk-badge { display:inline-block; font-family:var(--font-display); font-size:1.4rem; padding:.5rem 1.6rem; margin:.8rem 0; }
+.risk-low { background:#e8f5e9; color:var(--success); }
+.risk-mid { background:var(--warning-bg); color:var(--warning-text); }
+.risk-high { background:#ffeaea; color:var(--danger); }
+.result-subject { font-size:.85rem; color:var(--text-muted); }
+.result-cards { display:flex; flex-direction:column; gap:1rem; }
+.result-card { display:flex; align-items:flex-start; gap:1rem; padding:1.4rem 1.5rem; border:1px solid var(--border); background:var(--bg-card); }
+.result-card.found { border-color:rgba(185,64,64,.4); background:#fff8f8; }
+.result-card.locked { background:linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%); }
+.result-status-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.rs-clear { background:#e8f5e9; color:var(--success); }
+.rs-found { background:#ffeaea; color:var(--danger); }
+.rs-locked { background:var(--gold-dim); color:var(--gold); }
+.rs-error { background:var(--warning-bg); color:var(--warning-text); }
+.result-body { flex:1; }
+.result-body h4 { font-family:var(--font-display); font-size:1.05rem; font-weight:400; margin-bottom:.25rem; }
+.result-body p { font-size:.85rem; color:var(--text-secondary); line-height:1.6; }
+.result-detail { margin-top:.7rem; padding:.8rem 1rem; background:var(--bg-secondary); font-size:.8rem; font-family:var(--font-mono); color:var(--text-secondary); white-space:pre-line; word-break:break-word; }
+.result-card .btn-primary { padding:.55rem 1.3rem; font-size:.82rem; align-self:center; flex-shrink:0; }
+.verify-loading { text-align:center; padding:3rem 2rem; display:none; }
+/* Payment modal */
+.pay-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10001; display:none; align-items:center; justify-content:center; padding:1.5rem; }
+.pay-overlay.open { display:flex; }
+.pay-modal { background:var(--bg-card); border:1px solid var(--border); max-width:480px; width:100%; padding:2.2rem 2rem; position:relative; max-height:90vh; overflow-y:auto; }
+.pay-modal h3 { font-family:var(--font-display); font-size:1.3rem; font-weight:400; margin-bottom:.4rem; }
+.pay-modal > p { font-size:.88rem; color:var(--text-secondary); margin-bottom:1.4rem; }
+.pay-close { position:absolute; top:.8rem; right:.9rem; background:none; border:none; font-size:1.3rem; color:var(--text-muted); cursor:pointer; line-height:1; }
+.pay-close:hover { color:var(--danger); }
+.pay-options { display:flex; flex-direction:column; gap:.6rem; margin-bottom:1.4rem; }
+.pay-option { display:flex; align-items:center; gap:.8rem; padding:1rem 1.1rem; border:1px solid var(--border); cursor:pointer; transition:border-color .2s; }
+.pay-option:hover { border-color:var(--gold); }
+.pay-option.selected { border-color:var(--gold); background:var(--gold-dim); }
+.pay-option input { accent-color:var(--gold); }
+.pay-option-label { flex:1; font-size:.9rem; }
+.pay-option-label small { display:block; font-size:.74rem; color:var(--text-muted); margin-top:.15rem; }
+.pay-option-price { font-family:var(--font-display); font-size:1.05rem; color:var(--gold); white-space:nowrap; }
+.pay-note { font-size:.74rem; color:var(--text-muted); line-height:1.6; margin-top:1rem; }
+.spinner { width:36px; height:36px; border:3px solid var(--gold-dim); border-top-color:var(--gold); border-radius:50%; margin:0 auto 1rem; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.verify-note { font-size:.76rem; color:var(--text-muted); line-height:1.6; margin-top:1.5rem; }
+@media (max-width:900px) {
+  .verify-grid { grid-template-columns:1fr; }
+  .verify-sidebar { position:static; }
+}
+</style>
+</head>
+<body>
+<div class="disclaimer-bar">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2b7fe0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span data-cms="global.disclaimer">Investice do distressed assets nesou riziko ztráty. DEBTORA CZ není investiční poradce.</span>
+</div>
+<nav>
+  <a href="index.html" class="logo-wrap">
+    <svg class="logo-icon" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span><span class="logo-sub">Distressed Asset Marketplace</span></div>
+  </a>
+  <div class="nav-links">
+    <div class="nav-dropdown">
+      <a href="#">Služby ▾</a>
+      <div class="nav-dropdown-menu"><div class="nav-dropdown-menu-inner">
+        <a href="sluzby-dluhy.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Obchodování s dluhy<small>NPL portfolia, pohledávky</small></span></a>
+        <a href="sluzby-otc.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">OTC &amp; Pink Sheet<small>Mimoburzovní cenné papíry</small></span></a>
+        <a href="sluzby-nemovitosti.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10L12 3l9 7"/><path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 21v-6h4v6"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Nemovitosti ve fire sale<small>Exekuce, dražby, REO</small></span></a>
+        <a href="overeni-najemce.html"><span class="dd-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="dd-label">Ověření nájemce<small>Insolvence, exekuce, registry</small></span></a>
+      </div></div>
+    </div>
+    <a href="trziste.html">Tržiště</a>
+    <a href="jak-to-funguje.html">Jak to funguje</a>
+    <a href="cenik.html">Ceník</a>
+    <a href="kontakt.html">Kontakt</a>
+    <a href="prihlaseni.html" class="nav-auth-login">Přihlásit se</a>
+    <a href="ucet.html" class="nav-auth-account" style="display:none"><span class="nav-auth-name">Účet</span></a>
+    <a href="registrace.html" class="btn-nav">Registrace</a>
+  </div>
+  <button class="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-hero"><div class="page-hero-bg"></div><div class="container">
+  <div class="page-hero-tag" data-cms="verify.hero_tag">Ověření nájemce</div>
+  <h1 data-cms="verify.hero_headline">Pronajímejte <em>bezpečně</em> — ověřte si nájemce předem</h1>
+  <p class="page-hero-desc" data-cms="verify.hero_desc">Kontrola insolvenčního rejstříku, evidence exekucí a dalších registrů během několika vteřin. Základní kontroly zdarma.</p>
+</div></div>
+
+<section>
+  <div class="container">
+    <div class="verify-grid">
+
+      <!-- FORM + RESULTS -->
+      <div>
+        <div class="verify-form-card" id="verify-form-card">
+          <h3>Koho chcete ověřit?</h3>
+          <div class="subject-toggle" role="tablist">
+            <button type="button" id="toggle-fo" class="active">Fyzická osoba</button>
+            <button type="button" id="toggle-po">Firma / OSVČ (IČO)</button>
+          </div>
+
+          <form id="verify-form" novalidate>
+            <!-- FO fields -->
+            <div id="fields-fo">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="vf-firstname">Jméno *</label>
+                  <input type="text" id="vf-firstname" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="vf-lastname">Příjmení *</label>
+                  <input type="text" id="vf-lastname" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="vf-birthdate">Datum narození *</label>
+                  <input type="date" id="vf-birthdate">
+                </div>
+                <div class="form-group">
+                  <label for="vf-rc">Rodné číslo (nepovinné)</label>
+                  <input type="text" id="vf-rc" placeholder="bez lomítka" inputmode="numeric" maxlength="10">
+                  <div class="field-hint">Zpřesní výsledek. Zadávejte pouze se souhlasem dotčené osoby (§ 13c z. č. 133/2000 Sb.).</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PO fields -->
+            <div id="fields-po" style="display:none">
+              <div class="form-group">
+                <label for="vf-ico">IČO *</label>
+                <input type="text" id="vf-ico" placeholder="8 číslic" inputmode="numeric" maxlength="8">
+                <div class="field-hint">Název a sídlo doplníme automaticky z rejstříku ARES.</div>
+              </div>
+            </div>
+
+            <div class="form-check">
+              <label><input type="checkbox" id="vf-consent">
+                <span>Potvrzuji, že údaje ověřuji za účelem posouzení smluvního partnera (oprávněný zájem dle GDPR) a seznámil(a) jsem se se <a href="ochrana-soukromi.html" target="_blank">zásadami ochrany soukromí</a>. *</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn-primary" id="vf-submit">Spustit ověření →</button>
+            <div class="verify-note">Bezplatná kontrola: insolvenční rejstřík (ISIR), ARES a registr plátců DPH. Kontrola exekucí (CEE) je zpoplatněna — 122 Kč / dotaz. Výstup je informativní a není úředním dokumentem.</div>
+          </form>
+        </div>
+
+        <!-- LOADING -->
+        <div class="verify-loading" id="verify-loading">
+          <div class="spinner"></div>
+          <p id="loading-text">Dotazujeme rejstříky…</p>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="verify-results">
+          <div class="result-summary">
+            <div class="section-tag">Výsledek ověření</div>
+            <div class="risk-badge" id="risk-badge">—</div>
+            <div class="result-subject" id="result-subject"></div>
+          </div>
+          <div class="result-cards" id="result-cards"></div>
+          <div class="verify-note">Výsledky vycházejí z veřejných rejstříků k okamžiku dotazu. Záznamy uchováváme max. 30 dní. <button type="button" id="new-check" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.76rem;text-decoration:underline;padding:0">Nové ověření</button></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="verify-sidebar">
+        <div class="detail-sidebar-card">
+          <h4>Co kontrolujeme</h4>
+          <div class="registry-list" style="margin-top:.8rem">
+            <div class="registry-item"><span class="reg-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M3 7h18"/><path d="M6 7l-3 6a3 3 0 0 0 6 0z"/><path d="M18 7l-3 6a3 3 0 0 0 6 0z"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="reg-name">Insolvenční rejstřík<small>ISIR — justice.cz</small></span><span class="reg-tag reg-tag-free">Zdarma</span></div>
+            <div class="registry-item"><span class="reg-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="21" x2="21" y2="21"/><path d="M3 10l9-6 9 6z"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="reg-name">Registr subjektů ARES<small>ověření existence subjektu, likvidace</small></span><span class="reg-tag reg-tag-free">Zdarma</span></div>
+            <div class="registry-item"><span class="reg-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2L6 21z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="reg-name">Nespolehlivý plátce DPH<small>registr MFČR</small></span><span class="reg-tag reg-tag-free">Zdarma</span></div>
+            <div class="registry-item"><span class="reg-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4l5 5"/><path d="M17.5 6.5l-9 9"/><path d="M8.5 12.5L4 17a1.4 1.4 0 0 0 2 2l4.5-4.5"/><line x1="13" y1="20" x2="21" y2="20"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span><span class="reg-name">Centrální evidence exekucí<small>Exekutorská komora ČR</small></span><span class="reg-tag reg-tag-paid">122 Kč</span></div>
+          </div>
+        </div>
+        <div class="detail-sidebar-card">
+          <h4>Proč ověřovat nájemce?</h4>
+          <p>Vystěhování neplatiče trvá v ČR průměrně 6–18 měsíců a stojí desítky tisíc korun. Kontrola registrů předem je nejlevnější ochrana.</p>
+        </div>
+        <div class="detail-sidebar-card">
+          <h4>Co nekontrolujeme</h4>
+          <p>Bankovní a nebankovní registry (BRKI, NRKI, SOLUS) jsou přístupné pouze členům příslušných sdružení a součástí kontroly nejsou.</p>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="container">
+    <div class="section-header reveal"><div class="section-tag">Jak to funguje</div><h2>Ověření ve <em>třech krocích</em></h2></div>
+    <div class="steps-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="step-card reveal"><div class="step-num">01</div><h3>Zadejte údaje</h3><p>Jméno a datum narození nájemce, u firmy stačí IČO.</p></div>
+      <div class="step-card reveal"><div class="step-num">02</div><h3>Prohledáme rejstříky</h3><p>Insolvence, exekuce a další registry během několika vteřin.</p></div>
+      <div class="step-card reveal"><div class="step-num">03</div><h3>Získáte report</h3><p>Přehledný výsledek s vyhodnocením rizika a detaily záznamů.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2 class="reveal">Chcete ověřovat <em>opakovaně</em>?</h2>
+  <p class="reveal">Zaregistrujte se a získejte historii ověření, PDF reporty a zvýhodněné ceny kontrol exekucí.</p>
+  <div class="cta-actions reveal"><a href="registrace.html" class="btn-primary">Registrovat se →</a><a href="cenik.html" class="btn-secondary">Zobrazit ceník</a></div>
+</section>
+
+<!-- PAYMENT MODAL -->
+<div class="pay-overlay" id="pay-overlay" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+  <div class="pay-modal">
+    <button type="button" class="pay-close" id="pay-close" aria-label="Zavřít">×</button>
+    <h3 id="pay-title">Kontrola exekucí (CEE)</h3>
+    <p>Výpis aktivních exekucí z Centrální evidence exekucí vč. spisových značek.</p>
+
+    <div class="pay-options" id="pay-options">
+      <label class="pay-option selected">
+        <input type="radio" name="pay-product" value="single" checked>
+        <span class="pay-option-label">Jednorázová kontrola<small>Bez registrace — výsledek ihned a na e-mail</small></span>
+        <span class="pay-option-price">122 Kč</span>
+      </label>
+      <label class="pay-option">
+        <input type="radio" name="pay-product" value="pack5">
+        <span class="pay-option-label">Balíček 5 kontrol<small>115 Kč/kontrola · vyžaduje účet</small></span>
+        <span class="pay-option-price">575 Kč</span>
+      </label>
+      <label class="pay-option">
+        <input type="radio" name="pay-product" value="pack20">
+        <span class="pay-option-label">Balíček 20 kontrol<small>94 Kč/kontrola · vyžaduje účet</small></span>
+        <span class="pay-option-price">1 880 Kč</span>
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label for="pay-email">E-mail *</label>
+      <input type="email" id="pay-email" placeholder="vas@email.cz" autocomplete="email">
+      <div class="field-hint">Povinný — zašleme na něj fakturu a výsledek kontroly.</div>
+    </div>
+
+    <button type="button" class="btn-primary" id="pay-submit" style="width:100%">Zaplatit přes Comgate →</button>
+    <button type="button" id="pay-use-credit" style="display:none;width:100%;margin-top:.6rem;background:none;border:1px solid var(--border);padding:.7rem;font-family:var(--font-body);font-size:.85rem;color:var(--gold);cursor:pointer">Mám kredity — použít 1 kredit</button>
+    <div class="pay-note">Platba kartou, Apple Pay, Google Pay nebo bankovním tlačítkem. Provozuje Comgate, a.s. — licencovaná platební instituce ČNB. Ceny vč. DPH.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="index.html" class="logo-wrap"><svg class="logo-icon" width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#48a7ff"/><stop offset="100%" style="stop-color:#2b7fe0"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg2)" stroke-width="4"/><text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg2)">D</text><path d="M76 66 L92 73 L76 80" fill="none" stroke="#dc2626" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo-text"><span class="logo-name">Debtora <b>CZ</b></span></div></a>
+      <p data-cms="global.footer_desc">Česká platforma pro obchodování s distressed assets — pohledávky, nemovitosti, OTC cenné papíry.</p>
+    </div>
+    <div class="footer-col"><h5>Platforma</h5><a href="trziste.html">Prohlížet nabídky</a><a href="vlozit-inzerat.html">Vložit inzerát</a><a href="registrace.html">Registrace</a><a href="cenik.html">Ceník</a></div>
+    <div class="footer-col"><h5>Služby</h5><a href="sluzby-dluhy.html">Obchodování s dluhy</a><a href="sluzby-otc.html">OTC cenné papíry</a><a href="sluzby-nemovitosti.html">Prodej nemovitostí</a><a href="overeni-najemce.html">Ověření nájemce</a></div>
+    <div class="footer-col"><h5>Společnost</h5><a href="o-nas.html">O nás</a><a href="kontakt.html">Kontakt</a><a href="podminky.html">Obchodní podmínky</a><a href="ochrana-soukromi.html">Ochrana soukromí</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span data-cms="global.footer_copy">&copy; 2024 DEBTORA CZ s.r.o. Všechna práva vyhrazena.</span>
+    <div class="footer-legal"><a href="ochrana-soukromi.html">Ochrana soukromí</a><a href="podminky.html">Obchodní podmínky</a></div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cms.js"></script>
+<script src="js/main.js"></script>
+<script src="js/overeni.js"></script>
+</body>
+</html>
