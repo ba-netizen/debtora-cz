@@ -21,13 +21,17 @@
 - **5 edge funkcí** nasazeno (ACTIVE): `verify` (v6), `payment-create`, `payment-callback` (verify_jwt=false), `admin-moderate-listing`, `delete-account`.
 - **Frontend přepsán** na Supabase Auth + nové API, **moderní světlý design** (sjednocený s `/demo`), nasazen na produkci.
 - **Ověřovač protistrany** v hero landing page: 14 rejstříků, **reálná data** (ARES/ISIR/DPH/VIES/RŽP/CEÚ/sbírka listin), FO i PO, nepovinné RČ, rizikové skóre, legenda výsledků.
-- **Admin** přepsán na Supabase Auth + `is_admin` (žádný service-role klíč ve frontendu); **přiřazení rejstříků do úrovní služby** (FOC/Basic/Medium/Full) + ceny se spravuje v Admin → Rejstříky.
+- **Admin** přepsán na Supabase Auth + `is_admin` (žádný service-role klíč ve frontendu).
+  **Sjednocená sekce „Ověřování"** (3 sub-taby): *Rozsah služeb* (matice rejstřík×úroveň + cena v kr.),
+  *Cena kreditů* (základní cena/kredit + override balíčků + ceny služeb), *Uživatelé* (KYC, ruční ± kreditů,
+  historie transakcí + ověření, správa předplatného inzerce). Staré sidebar položky Rejstříky a Uživatelé sloučeny sem.
 - Admin účet: **info@debtora.cz** (řádek v `admin_users`, role admin).
 
 ## Klíčové soubory (jen finální stav)
 | Soubor | Účel | Stav |
 |---|---|---|
-| `sql/001–019` | Migrační série na `auth.users` (schéma+RLS+RPC) | finální, **applied** |
+| `sql/001–020` | Migrační série na `auth.users` (schéma+RLS+RPC) | finální, **applied** |
+| `sql/020_admin_verification.sql` | Admin RPC: `admin_adjust_credits`, `admin_set_subscription`, `admin_get_user_overview` + settings `credit_base_price_czk` | finální, **applied** |
 | `sql/legacy/` | Původní custom-login schéma | reference, **nespouštět** |
 | `supabase/functions/verify/index.ts` | Ověření v rejstřících (14), mock\|live, cenový engine, idempotence, rate-limit | finální, **deployed v6** |
 | `supabase/functions/_shared/cee.ts` | Typy `Subject`/`RegistryResult`, `validateSubject`, CEE adapter | finální |
@@ -62,7 +66,7 @@
 - **Cache:** css/js revalidace místo ročního immutable (web se iteruje editací souborů in-place).
 
 ## Supabase — schéma, RLS, migrace
-- **Migrace `sql/001–019`: VŠECHNY APPLIED** na `wefucmmkbspyaodofdki` (přes MCP). Žádné pending.
+- **Migrace `sql/001–020`: VŠECHNY APPLIED** na `wefucmmkbspyaodofdki` (přes MCP). Žádné pending.
   Public schéma bylo resetováno před aplikací; legacy testovací data smazána, CMS/settings zachovány.
 - **Tabulky (public):** `users` (profil 1:1 auth.users), `admin_users`, `content`, `settings`,
   `listings`, `listing_files`, `messages`, `storefronts`, `subscriptions`, `seller_identity`,
@@ -106,6 +110,15 @@ cd /Users/jirihochman/debtora-cz && npx vercel --prod
 # Edge funkce: supabase functions deploy <name>  (nebo přes Supabase MCP deploy_edge_function)
 # Test verify (live): POST .../functions/v1/verify  {subject:{type:'po',ico:'45272956'},level:'foc_nologin'}  s anon klíčem
 ```
+
+## Enrichment ověřovače (2026-06-14) — `verify` v7
+Adaptery rozšířeny o „maximum detailu" z reálných zdrojů (ověřeno živě na IČO 45272956 Generali a 25083325 Sberbank):
+- **ARES** (`checkAres`): jméno · právní forma (kód→zkratka) · sídlo · datum vzniku/zániku · **sp. zn. (aktuální z VR)** · statutární orgán (jména z VR) · DIČ · NACE. Příznak ⚠ „v likvidaci"/zánik. Nový `ARES_VR_ENDPOINT`, helper `aresVr` + `pravniFormaLabel`.
+- **ISIR** (`checkIsir`): u nálezu vrací sp. zn. `INS bcVec/rocnik` · `druhStavKonkursu` · soud (`nazevOrganizace`) · datum zahájení úpadku + `cases[]` v payloadu.
+- **RŽP** (`checkZivnost`): stav `stavZdrojeRzp` (AKTIVNI/HISTORICKY/ZANIKLY/—) + obory (NACE).
+- **CEÚ** (`checkUpadci`): příznak `stavZdrojeCeu` + odkaz na ISIR detail.
+- Výkon: `aresBase` má **cache na instanci** → ARES base jen 1 volání na IČO napříč adaptery (+1 VR v checkAres).
+- Drobnosti k doladění (P3): ISIR :8443 občas spadne na cold-callu (přechodné → ✕, u placených refund) — zvážit 1 retry; `datumPmZahajeniUpadku` vrací hodnotu s koncovým „Z" (kosmetika).
 
 ## Deploy audit + redeploy (2026-06-14) — disk ✔ = produkce ✔
 Audit „disk vs. nasazeno" potvrdil, že **veškerý kód session je na disku** (SQL i frontend plně in-sync;

@@ -35,6 +35,7 @@ import {
 
 const ISIR_ENDPOINT = "https://isir.justice.cz:8443/isir_cuzk_ws/IsirWsCuzkService";
 const ARES_ENDPOINT = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/";
+const ARES_VR_ENDPOINT = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty-vr/";
 const DPH_ENDPOINT = "https://adisrws.mfcr.cz/adistc/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP";
 const VIES_ENDPOINT = "https://ec.europa.eu/taxation_customs/vies/services/checkVatService";
 const RESULT_TTL_DAYS = 30;
@@ -94,22 +95,61 @@ async function checkIsir(subject: Subject): Promise<RegistryResult> {
   if (kodChyby) return { status: "error", message: `ISIR: ${xmlText(xml, "textChyby") ?? kodChyby}` };
   const records = xmlBlocks(xml, "data");
   if (records.length === 0) return { status: "clear", detail: "Bez insolvenčního řízení." };
-  return { status: "found", detail: `Nalezeno řízení: ${records.length}`, payload: { count: records.length } };
+  const cases = records.slice(0, 5).map((r) => {
+    const druh = xmlText(r, "druhVec") ?? "INS";
+    const bc = xmlText(r, "bcVec");
+    const rocnik = xmlText(r, "rocnik");
+    return {
+      spis: bc && rocnik ? `${druh} ${bc}/${rocnik}` : null,
+      stav: xmlText(r, "druhStavKonkursu"),
+      soud: xmlText(r, "nazevOrganizace"),
+      datum: xmlText(r, "datumPmZahajeniUpadku"),
+      url: xmlText(r, "urlDetailRizeni"),
+    };
+  });
+  const f = cases[0];
+  const parts: string[] = [];
+  if (f.spis) parts.push(`sp. zn. ${f.spis}`);
+  if (f.stav) parts.push(f.stav);
+  if (f.soud) parts.push(f.soud);
+  if (f.datum) parts.push(`zahájení úpadku ${f.datum}`);
+  const detail = `Nalezeno řízení: ${records.length}${parts.length ? " — " + parts.join(" · ") : ""}`;
+  return { status: "found", detail, payload: { count: records.length, cases } };
 }
 
 async function checkAres(subject: SubjectPO): Promise<RegistryResult> {
-  const res = await fetchWithTimeout(ARES_ENDPOINT + encodeURIComponent(subject.ico), {
-    headers: { Accept: "application/json" },
-  });
-  if (res.status === 404) return { status: "found", detail: "IČO v ARES nenalezeno." };
-  if (!res.ok) throw new Error(`ARES HTTP ${res.status}`);
-  const data = await res.json();
-  const jmeno: string = data.obchodniJmeno ?? "";
+  const b = await aresBase(subject.ico);
+  if (b.notFound) return { status: "found", detail: "IČO v ARES nenalezeno." };
+  if (b.error || !b.data) throw new Error(`ARES ${b.error ?? "bez dat"}`);
+  const data = b.data;
+  const jmeno = (data.obchodniJmeno as string) ?? "";
+  const forma = pravniFormaLabel(data.pravniForma);
+  const sidlo = ((data.sidlo as Record<string, unknown>)?.textovaAdresa as string) ?? null;
+  const vznik = (data.datumVzniku as string) ?? null;
+  const zanik = (data.datumZaniku as string) ?? null;
+  const nace = Array.isArray(data.czNace) ? (data.czNace as string[]) : [];
+  const dic = (data.dic as string) ?? null;
+  const vr = await aresVr(subject.ico); // best-effort: spisová značka + statutární orgán
+
+  const profil: string[] = [];
+  if (forma) profil.push(forma);
+  if (sidlo) profil.push(sidlo);
+  if (vznik) profil.push(`vznik ${vznik}`);
+  if (vr.spisZnacka) profil.push(`sp. zn. ${vr.spisZnacka}`);
+  if (vr.statutari.length) {
+    profil.push(`statutární orgán: ${vr.statutari.slice(0, 3).join(", ")}${vr.statutari.length > 3 ? ` +${vr.statutari.length - 3}` : ""}`);
+  }
+  if (dic) profil.push(`DIČ ${dic}`);
+  if (nace.length) profil.push(`NACE ${nace.slice(0, 3).join(", ")}`);
+
+  const payload = { jmeno, forma, sidlo, vznik, zanik, dic, nace, spisZnacka: vr.spisZnacka, statutari: vr.statutari };
   const problems: string[] = [];
-  if (data.datumZaniku) problems.push(`zanikl ${data.datumZaniku}`);
+  if (zanik) problems.push(`zanikl ${zanik}`);
   if (/v likvidaci/i.test(jmeno)) problems.push("v likvidaci");
-  if (problems.length) return { status: "found", detail: `${jmeno} · ${problems.join(" · ")}` };
-  return { status: "clear", detail: `${jmeno} · vznik ${data.datumVzniku ?? "—"}` };
+  const detail = problems.length
+    ? `${jmeno} · ${problems.join(" · ")}${profil.length ? " · " + profil.join(" · ") : ""}`
+    : `${jmeno}${profil.length ? " · " + profil.join(" · ") : ""}`;
+  return { status: problems.length ? "found" : "clear", detail, payload };
 }
 
 async function checkDph(subject: SubjectPO): Promise<RegistryResult> {
@@ -128,25 +168,72 @@ async function checkDph(subject: SubjectPO): Promise<RegistryResult> {
     : { status: "clear", detail: "Není veden jako nespolehlivý plátce." };
 }
 
-// Dohledání názvu firmy z ARES (vždy — i v mock režimu; veřejné REST, fail-soft).
-async function aresName(ico: string): Promise<string | null> {
+// ── ARES base data (cache na instanci → jediné volání na IČO napříč adaptery) ──
+type AresResult = { notFound?: boolean; error?: string; data: Record<string, unknown> | null };
+const _aresCache = new Map<string, AresResult>();
+async function aresBase(ico: string): Promise<AresResult> {
+  const hit = _aresCache.get(ico);
+  if (hit) return hit;
+  let out: AresResult;
   try {
     const res = await fetchWithTimeout(ARES_ENDPOINT + encodeURIComponent(ico), { headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.obchodniJmeno as string) ?? null;
-  } catch (_e) {
-    return null;
-  }
+    if (res.status === 404) out = { notFound: true, data: null };
+    else if (!res.ok) out = { error: `HTTP ${res.status}`, data: null };
+    else out = { data: await res.json() };
+  } catch (e) { out = { error: (e as Error).message, data: null }; }
+  if (_aresCache.size > 200) _aresCache.clear();
+  _aresCache.set(ico, out);
+  return out;
 }
 
-// Plná ARES data (pro RŽP/CEÚ/sbírku). Fail-soft.
-async function aresJson(ico: string): Promise<Record<string, unknown> | null> {
+// VR (obchodní rejstřík) — aktuální spisová značka + statutární orgán. Fail-soft.
+async function aresVr(ico: string): Promise<{ spisZnacka: string | null; statutari: string[] }> {
   try {
-    const res = await fetchWithTimeout(ARES_ENDPOINT + encodeURIComponent(ico), { headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (_e) { return null; }
+    const res = await fetchWithTimeout(ARES_VR_ENDPOINT + encodeURIComponent(ico), { headers: { Accept: "application/json" } });
+    if (!res.ok) return { spisZnacka: null, statutari: [] };
+    const d = await res.json();
+    const zaznamy: Array<Record<string, unknown>> = Array.isArray(d.zaznamy) ? d.zaznamy : [];
+    let spisZnacka: string | null = null;
+    const statutari: string[] = [];
+    for (const z of zaznamy) {
+      for (const s of ((z.spisovaZnacka as Array<Record<string, unknown>>) ?? [])) {
+        if (s.datumVymazu == null && s.soud) {
+          spisZnacka = `${s.soud} ${s.oddil ?? ""} ${s.vlozka ?? ""}`.replace(/  +/g, " ").trim();
+          break;
+        }
+      }
+      for (const o of ((z.statutarniOrgany as Array<Record<string, unknown>>) ?? [])) {
+        if (o.datumVymazu != null) continue;
+        for (const c of ((o.clenoveOrganu as Array<Record<string, unknown>>) ?? [])) {
+          if (c.datumVymazu != null) continue;
+          const fo = c.fyzickaOsoba as Record<string, unknown> | undefined;
+          const po = c.pravnickaOsoba as Record<string, unknown> | undefined;
+          const nm = (fo?.textOsoba as string) ?? (po?.obchodniJmeno as string) ?? null;
+          if (nm && !statutari.includes(nm)) statutari.push(nm);
+        }
+      }
+    }
+    return { spisZnacka, statutari: statutari.slice(0, 6) };
+  } catch (_e) { return { spisZnacka: null, statutari: [] }; }
+}
+
+// Mapování kódu právní formy na čitelnou zkratku (běžné typy; jinak "forma <kód>").
+function pravniFormaLabel(code: unknown): string | null {
+  if (code == null) return null;
+  const m: Record<string, string> = {
+    "100": "podnikající FO", "101": "podnikající FO", "111": "v.o.s.", "112": "s.r.o.", "113": "k.s.",
+    "115": "s.r.o.", "121": "a.s.", "141": "družstvo", "145": "SVJ", "151": "družstvo",
+    "205": "družstvo", "301": "státní podnik", "325": "organizační složka", "331": "příspěvková organizace",
+    "352": "ústav", "421": "odštěpný závod zahr. osoby", "521": "spolek", "701": "spolek", "705": "spolek",
+    "706": "pobočný spolek", "736": "nadace", "751": "o.p.s.", "801": "obec", "804": "kraj", "936": "nadační fond",
+  };
+  return m[String(code)] ?? `forma ${code}`;
+}
+
+// Dohledání názvu firmy z ARES (vždy — i v mock režimu; veřejné REST, fail-soft).
+async function aresName(ico: string): Promise<string | null> {
+  const b = await aresBase(ico);
+  return (b.data?.obchodniJmeno as string) ?? null;
 }
 
 // VIES — ověření DIČ v rámci EU (veřejné SOAP, zdarma). PO/DIČ.
@@ -165,24 +252,33 @@ async function checkVies(subject: SubjectPO): Promise<RegistryResult> {
   }
 }
 
-// Živnostenský rejstřík (RŽP) — přes ARES seznamRegistraci. PO/IČO.
+// Živnostenský rejstřík (RŽP) — přes ARES seznamRegistraci + činnosti (NACE). PO/IČO.
 async function checkZivnost(subject: SubjectPO): Promise<RegistryResult> {
-  const d = await aresJson(subject.ico);
-  if (!d) return { status: "unavailable", message: "ARES nedostupný." };
-  const reg = (d.seznamRegistraci ?? {}) as Record<string, unknown>;
-  return reg.stavZdrojeRzp === "AKTIVNI"
-    ? { status: "clear", detail: "Aktivní živnostenské oprávnění (RŽP)." }
-    : { status: "clear", detail: "Bez aktivního živnostenského oprávnění." };
+  const b = await aresBase(subject.ico);
+  if (!b.data) return { status: "unavailable", message: "ARES nedostupný." };
+  const reg = (b.data.seznamRegistraci ?? {}) as Record<string, unknown>;
+  const stav = reg.stavZdrojeRzp as string | undefined;
+  const nace = Array.isArray(b.data.czNace) ? (b.data.czNace as string[]) : [];
+  const naceTxt = nace.length ? ` · obory (NACE): ${nace.slice(0, 5).join(", ")}` : "";
+  const label = stav === "AKTIVNI"
+    ? "Aktivní živnostenské oprávnění (RŽP)"
+    : stav === "HISTORICKY"
+    ? "Pouze historické (zaniklé) živnostenské oprávnění"
+    : stav === "ZANIKLY"
+    ? "Zaniklé živnostenské oprávnění"
+    : "Bez záznamu v živnostenském rejstříku";
+  return { status: "clear", detail: `${label}${naceTxt}.`, payload: { stav: stav ?? null, nace } };
 }
 
-// Evidence úpadců (CEÚ) — přes ARES. PO/IČO.
+// Evidence úpadců (CEÚ) — přes ARES. PO/IČO. Detail úpadku viz ISIR.
 async function checkUpadci(subject: SubjectPO): Promise<RegistryResult> {
-  const d = await aresJson(subject.ico);
-  if (!d) return { status: "unavailable", message: "ARES nedostupný." };
-  const reg = (d.seznamRegistraci ?? {}) as Record<string, unknown>;
-  return reg.stavZdrojeCeu === "AKTIVNI"
-    ? { status: "found", detail: "Záznam v evidenci úpadců (CEÚ)." }
-    : { status: "clear", detail: "Bez záznamu v evidenci úpadců." };
+  const b = await aresBase(subject.ico);
+  if (!b.data) return { status: "unavailable", message: "ARES nedostupný." };
+  const reg = (b.data.seznamRegistraci ?? {}) as Record<string, unknown>;
+  const stav = reg.stavZdrojeCeu as string | undefined;
+  return stav === "AKTIVNI"
+    ? { status: "found", detail: "Záznam v centrální evidenci úpadců (CEÚ) — detail viz ISIR.", payload: { stav } }
+    : { status: "clear", detail: "Bez záznamu v evidenci úpadců (CEÚ).", payload: { stav: stav ?? null } };
 }
 
 // Sbírka listin / účetní závěrky — odkaz do veřejného rejstříku. PO/IČO.
