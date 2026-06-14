@@ -36,6 +36,7 @@ import {
 const ISIR_ENDPOINT = "https://isir.justice.cz:8443/isir_cuzk_ws/IsirWsCuzkService";
 const ARES_ENDPOINT = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/";
 const DPH_ENDPOINT = "https://adisrws.mfcr.cz/adistc/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP";
+const VIES_ENDPOINT = "https://ec.europa.eu/taxation_customs/vies/services/checkVatService";
 const RESULT_TTL_DAYS = 30;
 const MODE = (Deno.env.get("VERIFY_MODE") ?? "live").toLowerCase(); // 'mock' | 'live' (default live; secret může přepnout)
 
@@ -152,7 +153,7 @@ async function aresJson(ico: string): Promise<Record<string, unknown> | null> {
 async function checkVies(subject: SubjectPO): Promise<RegistryResult> {
   const env = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types"><soapenv:Body><urn:checkVat><urn:countryCode>CZ</urn:countryCode><urn:vatNumber>${xmlEscape(subject.ico)}</urn:vatNumber></urn:checkVat></soapenv:Body></soapenv:Envelope>`;
   try {
-    const res = await fetchWithTimeout("https://ec.europa.eu/taxation_customs/vies/services/checkVatService", { method: "POST", headers: { "Content-Type": "text/xml; charset=utf-8" }, body: env });
+    const res = await fetchWithTimeout(VIES_ENDPOINT, { method: "POST", headers: { "Content-Type": "text/xml; charset=utf-8" }, body: env });
     if (!res.ok) return { status: "unavailable", message: "VIES je dočasně nedostupné — zkuste později." };
     const xml = await res.text();
     const valid = xmlText(xml, "valid");

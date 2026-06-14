@@ -67,7 +67,7 @@ async function handleCreate(req: Request, body: Record<string, unknown>): Promis
   if (!product) return json({ error: "Neznámý produkt." }, 400);
 
   const email = String(body.email ?? "").trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  if (!/^[^@ ]+@[^@ ]+[.][^@ ]{2,}$/.test(email)) {
     return json({ error: "Zadejte platný e-mail — potřebujeme ho pro fakturu a zaslání výsledku." }, 400);
   }
 
@@ -123,7 +123,7 @@ async function handleCreate(req: Request, body: Record<string, unknown>): Promis
 
   if (resp.get("code") !== "0") {
     console.error("[payment-create] Comgate:", resp.get("code"), resp.get("message"));
-    await admin.from("payments").update({ status: "error" }).eq("id", payment.id);
+    await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);
     return json({ error: "Platební brána je momentálně nedostupná. Zkuste to prosím později." }, 502);
   }
 
