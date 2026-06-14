@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ověření nájemce — mockup pro video</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+:root{ --gold:#2b7fe0; --gold-light:#48a7ff; --dark:#0f172a; --muted:#94a3b8; --sec:#475569;
+  --danger:#dc2626; --success:#0d9f6e; --bg:#f6f8fc; --alarm:#8e1414; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:'Outfit',sans-serif;background:#000;color:var(--dark);
+  display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+.phone{width:100vw;max-width:430px;height:100vh;max-height:932px;background:#fff;
+  display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.statusbar{background:var(--dark);color:#fff;padding:14px 24px 10px;display:flex;
+  justify-content:space-between;align-items:center;font-size:14px;font-weight:500;}
+.statusbar .ic{display:flex;gap:7px;font-size:15px;}
+.appbar{padding:18px 24px;border-bottom:1px solid rgba(0,0,0,.07);display:flex;align-items:center;gap:10px;}
+.logo{font-family:'Outfit',sans-serif;font-size:20px;color:var(--dark);}
+.logo b{color:var(--gold);}
+.appbar .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-left:auto;}
+.screen{flex:1;padding:26px 24px;overflow-y:auto;}
+
+/* phases */
+.phase{display:none;}
+.phase.active{display:block;animation:fade .5s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+/* form */
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:13px;color:var(--sec);margin-bottom:6px;font-weight:500;}
+.field .val{border:1px solid rgba(0,0,0,.12);background:var(--bg);padding:13px 15px;
+  font-size:15px;border-radius:2px;color:var(--dark);min-height:48px;display:flex;align-items:center;}
+.field .val.typing::after{content:'';width:2px;height:18px;background:var(--gold);
+  margin-left:2px;animation:blink .7s steps(1) infinite;}
+@keyframes blink{50%{opacity:0;}}
+.btn{background:var(--gold);color:#fff;text-align:center;padding:15px;font-size:15px;
+  font-weight:500;letter-spacing:.03em;border-radius:2px;margin-top:6px;transition:transform .1s;}
+.btn.press{transform:scale(.97);background:var(--gold-light);}
+
+/* scanning */
+.scan{text-align:center;padding-top:40px;}
+.spinner{width:54px;height:54px;border:4px solid rgba(43,127,224,.15);border-top-color:var(--gold);
+  border-radius:50%;margin:0 auto 26px;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.scan h2{font-family:'Outfit',sans-serif;font-weight:400;font-size:19px;margin-bottom:30px;}
+.scanrow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(0,0,0,.06);
+  font-size:14px;color:var(--sec);opacity:.35;transition:opacity .3s;}
+.scanrow.done{opacity:1;color:var(--dark);}
+.scanrow .dot{width:22px;height:22px;border-radius:50%;background:#eee;color:transparent;
+  display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .3s;}
+.scanrow.done .dot{background:#e8f5e9;color:var(--success);}
+
+/* result */
+.result-head{text-align:center;margin-bottom:22px;}
+.result-tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.risk{display:inline-flex;align-items:center;gap:10px;font-family:'Outfit',sans-serif;font-size:26px;
+  background:var(--alarm);color:#fff;padding:14px 32px;border-radius:3px;
+  box-shadow:0 0 0 4px rgba(142,20,20,.18);animation:pulse 1.1s ease-in-out infinite;}
+.risk i{font-size:24px;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(142,20,20,.18);}50%{box-shadow:0 0 0 9px rgba(142,20,20,.05);}}
+.subject{font-size:13px;color:var(--muted);margin-top:11px;}
+.card{display:flex;gap:13px;align-items:flex-start;padding:16px;border:1px solid rgba(0,0,0,.08);
+  border-radius:8px;margin-bottom:12px;background:#fff;}
+.card.bad{border:1.5px solid var(--alarm);background:#fff8f8;}
+.card .sic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:15px;font-weight:600;}
+.sic.ok{background:#e8f5e9;color:var(--success);}
+.sic.no{background:#ffeaea;color:var(--danger);}
+.card h3{font-family:'Outfit',sans-serif;font-weight:400;font-size:15px;margin-bottom:3px;}
+.card p{font-size:13px;color:var(--sec);line-height:1.5;}
+.disclaimer{margin-top:14px;padding:11px 13px;background:var(--bg);border-radius:6px;
+  font-size:11px;color:var(--muted);line-height:1.5;text-align:center;}
+.payoff{text-align:center;padding-top:60px;}
+.payoff-icon{width:64px;height:64px;border-radius:50%;background:#e8f5e9;color:var(--success);
+  font-size:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px;}
+.payoff-price{font-family:'Outfit',sans-serif;font-size:54px;color:var(--gold);line-height:1;margin-bottom:18px;}
+.payoff-msg{font-family:'Outfit',sans-serif;font-size:24px;color:var(--dark);line-height:1.5;margin-bottom:24px;}
+.payoff-msg b{color:var(--gold);}
+.payoff-sub{font-size:15px;color:var(--sec);margin-bottom:44px;}
+.payoff-brand{font-family:'Outfit',sans-serif;font-size:16px;color:var(--muted);letter-spacing:.04em;}
+.payoff-brand b{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="ic"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="16"/><line x1="9" y1="20" x2="9" y2="13"/><line x1="14" y1="20" x2="14" y2="9"/><line x1="19" y1="20" x2="19" y2="5"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg> <svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="8" width="18" height="8" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span>
+  </div>
+  <div class="appbar">
+    <span class="logo">DEBTOR<b>A</b></span>
+    <span class="tag">Ověření nájemce</span>
+  </div>
+
+  <div class="screen">
+    <!-- 1: FORM -->
+    <div class="phase active" id="p-form">
+      <div class="field"><label>Jméno a příjmení</label><div class="val" id="f-name"></div></div>
+      <div class="field"><label>Datum narození</label><div class="val" id="f-date"></div></div>
+      <div class="btn" id="f-btn">Spustit ověření →</div>
+    </div>
+
+    <!-- 2: SCAN -->
+    <div class="phase" id="p-scan">
+      <div class="scan">
+        <div class="spinner"></div>
+        <h2>Dotazujeme rejstříky…</h2>
+        <div class="scanrow" id="s1"><span class="dot"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Insolvenční rejstřík (ISIR)</div>
+        <div class="scanrow" id="s2"><span class="dot"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Centrální evidence exekucí</div>
+        <div class="scanrow" id="s3"><span class="dot"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Registr ARES</div>
+      </div>
+    </div>
+
+    <!-- 3: RESULT -->
+    <div class="phase" id="p-result">
+      <div class="result-head">
+        <div class="result-tag">Výsledek ověření</div>
+        <div class="risk"><span style="font-family:'Outfit',sans-serif;font-weight:700;"><svg class="ico ico-warn" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 16.5a1 1 0 0 1-.9 1.5H3.4a1 1 0 0 1-.9-1.5L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12" y2="17.6"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Vysoké riziko</div>
+        <div class="subject">Jan Vzorek, nar. 14. 3. 1990</div>
+      </div>
+      <div class="card bad"><div class="sic no">!</div><div><h3>Centrální evidence exekucí</h3><p>Nalezeny 3 aktivní exekuce.</p></div></div>
+      <div class="card bad"><div class="sic no">!</div><div><h3>Insolvenční rejstřík (ISIR)</h3><p>Nalezeno insolvenční řízení.</p></div></div>
+      <div class="card"><div class="sic ok"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></div><div><h3>Registr ARES</h3><p>Subjekt nenalezen v podnikání.</p></div></div>
+      <div class="disclaimer">Ilustrační ukázka. Jméno i údaje jsou smyšlené a neodpovídají žádné skutečné osobě.</div>
+    </div>
+
+    <!-- 4: PAYOFF -->
+    <div class="phase" id="p-payoff">
+      <div class="payoff">
+        <div class="payoff-icon"><svg class="ico" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></div>
+        <div class="payoff-price">122 Kč</div>
+        <div class="payoff-msg">vám právě ušetřilo<br><b>3 měsíční nájmy</b><br>a spoustu času.</div>
+        <div class="payoff-sub">Vědět, s kým uzavíráte smlouvu.</div>
+        <div class="payoff-brand">DEBTOR<b>A</b> · debtora.cz</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){document.querySelectorAll('.phase').forEach(function(p){p.classList.remove('active');});document.getElementById(id).classList.add('active');}
+function type(el,text,done){var i=0;el.classList.add('typing');var t=setInterval(function(){el.textContent=text.slice(0,++i);if(i>=text.length){clearInterval(t);el.classList.remove('typing');done&&done();}},85);}
+
+function run(){
+  show('p-form');
+  document.getElementById('f-name').textContent='';
+  document.getElementById('f-date').textContent='';
+  setTimeout(function(){
+    type(document.getElementById('f-name'),'Jan Vzorek',function(){
+      setTimeout(function(){
+        type(document.getElementById('f-date'),'14. 3. 1990',function(){
+          setTimeout(function(){
+            var b=document.getElementById('f-btn');b.classList.add('press');
+            setTimeout(function(){b.classList.remove('press');show('p-scan');scan();},350);
+          },600);
+        });
+      },400);
+    });
+  },800);
+}
+function scan(){
+  var rows=['s1','s2','s3'];
+  rows.forEach(function(id,i){setTimeout(function(){document.getElementById(id).classList.add('done');},700+i*650);});
+  setTimeout(function(){show('p-result');setTimeout(function(){show('p-payoff');setTimeout(run,4200);},4500);},700+rows.length*650+600);
+}
+run();
+</script>
+</body>
+</html>

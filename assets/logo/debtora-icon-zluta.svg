@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Debtora CZ">
+  <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#48a7ff"/><stop offset="100%" stop-color="#2b7fe0"/></linearGradient></defs>
+  <rect x="4" y="4" width="112" height="112" rx="8" fill="none" stroke="url(#lg)" stroke-width="4"/>
+  <text x="44" y="84" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="62" font-weight="800" fill="url(#lg)">D</text>
+  <path d="M76 66 L92 73 L76 80" fill="none" stroke="#ef9f27" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

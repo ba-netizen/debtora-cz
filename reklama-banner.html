@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Návrhy bannerů — Ověření nájemce | DEBTORA CZ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+:root { --gold:#2b7fe0; --gold-light:#48a7ff; --dark:#0f172a; --bg:#f6f8fc; --danger:#dc2626; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Outfit',sans-serif; background:#e8e6e0; padding:3rem; color:var(--dark); }
+h1 { font-family:'Outfit',sans-serif; font-weight:400; margin-bottom:.3rem; }
+.note { color:#777; font-size:.85rem; margin-bottom:2.5rem; }
+.row { display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:3rem; }
+.banner-wrap h3 { font-size:.8rem; color:#888; font-weight:500; margin-bottom:.6rem; text-transform:uppercase; letter-spacing:.08em; }
+.banner { background:#fff; border:1px solid rgba(0,0,0,.12); overflow:hidden; position:relative; display:flex; box-shadow:0 4px 20px rgba(0,0,0,.08); }
+.logo { font-family:'Outfit',sans-serif; font-size:.95rem; }
+.logo b { color:var(--gold); }
+.cta { display:inline-block; background:var(--gold); color:#fff; font-size:.78rem; font-weight:600; padding:.5rem 1.1rem; letter-spacing:.03em; }
+.tag { font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+.serif { font-family:'Outfit',sans-serif; font-weight:400; }
+.gold { color:var(--gold); } .red { color:var(--danger); }
+
+/* ── 300×250 — varianta A (škoda vs cena) ── */
+.b-mpu { width:300px; height:250px; flex-direction:column; padding:1.3rem 1.4rem; justify-content:space-between; }
+.b-mpu .big { font-size:1.55rem; line-height:1.25; }
+.b-mpu .strike { position:relative; white-space:nowrap; }
+.b-mpu hr { border:none; border-top:1px solid rgba(43,127,224,.25); margin:.5rem 0; }
+
+/* ── 728×90 — varianta B ── */
+.b-leader { width:728px; height:90px; align-items:center; padding:0 1.5rem; gap:1.5rem; }
+.b-leader .q { font-size:1.25rem; line-height:1.2; flex:1; }
+
+/* ── 300×600 — varianta C (zdarma) ── */
+.b-sky { width:300px; height:600px; flex-direction:column; padding:1.8rem 1.5rem; }
+.b-sky .check { display:flex; align-items:center; gap:.6rem; padding:.55rem 0; border-bottom:1px solid rgba(0,0,0,.07); font-size:.85rem; }
+.b-sky .check .ic { width:22px; height:22px; border-radius:50%; background:#e8f5e9; color:#0d9f6e; display:flex; align-items:center; justify-content:center; font-size:.7rem; flex-shrink:0; }
+.b-sky .check .lock { background:rgba(43,127,224,.12); color:var(--gold); }
+.b-sky .big { font-size:1.7rem; line-height:1.2; margin:.8rem 0 .4rem; }
+.disc { font-size:.56rem; color:#aaa; margin-top:.6rem; line-height:1.4; }
+</style>
+</head>
+<body>
+<h1>Návrhy bannerů — Ověření nájemce</h1>
+<p class="note">Tři formáty pro obsahovou síť (Google/Sklik) a vlastní web. Styl odpovídá brandu Debtora (modrá, Outfit). Náhled = předloha pro grafika / HTML5 bannery.</p>
+
+<div class="row">
+  <!-- 300x250 varianta A -->
+  <div class="banner-wrap">
+    <h3>300 × 250 · varianta A — „škoda vs. cena"</h3>
+    <div class="banner b-mpu">
+      <div class="tag">Ověření nájemce</div>
+      <div class="big serif">Neplatič = <span class="red">80 000 Kč</span><hr>Prověření = <span class="gold">122 Kč</span></div>
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span class="logo">Debtora <b>CZ</b></span>
+        <span class="cta">Prověřit nájemce →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 300x600 varianta C -->
+  <div class="banner-wrap">
+    <h3>300 × 600 · varianta C — „zdarma + co kontrolujeme"</h3>
+    <div class="banner b-sky">
+      <div class="tag">Ověření nájemce</div>
+      <div class="big serif">Má váš nájemce <span class="red">exekuce</span>?</div>
+      <div style="font-size:.85rem; color:#666; margin-bottom:1rem">Zjistěte to za 60 vteřin — stačí jméno a datum narození.</div>
+      <div class="check"><span class="ic"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Insolvenční rejstřík <strong style="color:#0d9f6e; margin-left:auto; font-size:.75rem">ZDARMA</strong></div>
+      <div class="check"><span class="ic"><svg class="ico ico-ok" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/><circle class="ico-dot-bg" cx="18.5" cy="18.5" r="4.9" fill="#ffffff" stroke="none"/><circle class="ico-dot" cx="18.5" cy="18.5" r="2.2" fill="#dc2626" stroke="none"/></svg></span> Registr ARES <strong style="color:#0d9f6e; margin-left:auto; font-size:.75rem">ZDARMA</strong></div>
+      <div class="check"><span class="ic lock">●</span> Evidence exekucí <strong style="color:var(--gold); margin-left:auto; font-size:.75rem">122 Kč</strong></div>
+      <div style="flex:1"></div>
+      <div class="big serif" style="font-size:1.15rem">Pronajímejte <em style="color:var(--gold)">bezpečně</em>.</div>
+      <div style="margin:.9rem 0"><span class="cta" style="display:block; text-align:center; padding:.7rem">Zkontrolovat zdarma →</span></div>
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span class="logo">Debtora <b>CZ</b></span>
+      </div>
+      <div class="disc">Informativní výpis z veřejných rejstříků ČR.</div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- 728x90 varianta B -->
+  <div class="banner-wrap">
+    <h3>728 × 90 · varianta B — otázka</h3>
+    <div class="banner b-leader">
+      <span class="logo" style="font-size:1.1rem">Debtora <b>CZ</b></span>
+      <span class="q serif">Má váš nájemce <span class="red">exekuce</span>? Zjistěte to za <span class="gold">60 vteřin</span>.</span>
+      <span class="cta">Zkontrolovat →</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
